@@ -1,0 +1,276 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+}
+
+// Пользователь
+model user {
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  avatar               String?
+  email                String // Только один email с подтверждением (задача бекенда)
+  confirmed            Boolean                 @default(false) // Подтверждение по электронной почте
+  password             String // hashed
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at           DateTime?               @db.Timestamptz(6)
+  workspaces_admin     workspace[]
+  workspaceMembers     workspace_member[]
+  workspaceInvitations workspace_invitation[]
+  changeStatusEvents   change_status_event[]
+  intervals            interval[]
+  created_tasks        task[]                  @relation("author")
+  active_tasks         task[]                  @relation("current_executor")
+  messages             message[]
+  files                file[]
+  userWorkspaceFilters user_workspace_filter[]
+  readMarks            read_mark[]
+  statusesPressets     statuses_preset[]
+  taskPresets          task_preset[]           @relation("preset_executor")
+  workspaceReactions   workspace_reaction[]
+  taskStatusReactions  task_status_reaction[]
+}
+
+// Workspace - это может быть команда, проект, релиз, что угодно что объеденяет какие-то задачи и людей
+model workspace {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  name                 String
+  avatar               String?
+  admin                user                    @relation(fields: [admin_id], references: [id])
+  admin_id             String                  @db.Uuid
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at           DateTime?               @db.Timestamptz(6)
+  workspaceMembers     workspace_member[]
+  workspaceInvitations workspace_invitation[]
+  statuses             status[]
+  tasks                task[]
+  userWorkspaceFilters user_workspace_filter[]
+  taskPresets          task_preset[]
+  workspaceReactions   workspace_reaction[]
+}
+
+// Сохраненный фильтр в workspace
+model user_workspace_filter {
+  user         user      @relation(fields: [user_id], references: [id])
+  user_id      String    @db.Uuid
+  workspace    workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String    @db.Uuid
+  statuses     Json @default("[]")
+  users        user_filter_executor @default(all)
+
+  @@unique([user_id, workspace_id])
+}
+
+// Участник workspace
+model workspace_member {
+  user         user      @relation(fields: [user_id], references: [id])
+  user_id      String    @db.Uuid
+  workspace    workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String    @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime? @db.Timestamptz(6)
+
+  @@unique([user_id, workspace_id])
+}
+
+// Приглашение в workspace
+model workspace_invitation {
+  user         user      @relation(fields: [user_id], references: [id])
+  user_id      String    @db.Uuid
+  workspace    workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String    @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime? @db.Timestamptz(6)
+
+  @@unique([user_id, workspace_id])
+}
+
+// Статус задачи
+model status {
+  id                     String                @id @default(uuid()) @db.Uuid
+  name                   String
+  category               status_category
+  workspace              workspace             @relation(fields: [workspace_id], references: [id])
+  workspace_id           String                @db.Uuid
+  created_at             DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime              @default(now()) @db.Timestamptz(6)
+  deleted_at             DateTime?             @db.Timestamptz(6)
+  fromchangeStatusEvents change_status_event[] @relation("from")
+  tochangeStatusEvents   change_status_event[] @relation("to")
+  intervals              interval[]
+  tasks                  task[]
+  taskPresets            task_preset[]
+}
+
+// Задача
+model task {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  key                 Int                    @default(autoincrement())
+  name                String?
+  description         String
+  workspace           workspace              @relation(fields: [workspace_id], references: [id])
+  workspace_id        String                 @db.Uuid
+  author              user                   @relation("author", fields: [author_id], references: [id])
+  author_id           String                 @db.Uuid
+  executor            user?                  @relation("current_executor", fields: [executor_id], references: [id])
+  executor_id         String?                @db.Uuid
+  status              status                 @relation(fields: [status_id], references: [id])
+  status_id           String                 @db.Uuid
+  created_at          DateTime               @default(now()) @db.Timestamptz(6)
+  changeStatusEvents  change_status_event[]
+  intervals           interval[]
+  messages            message[]
+  readMarks           read_mark[]
+  taskStatusReactions task_status_reaction[]
+}
+
+// Сообщения в задаче
+model message {
+  id         String      @id @default(uuid()) @db.Uuid
+  task       task        @relation(fields: [task_id], references: [id])
+  task_id    String      @db.Uuid
+  content    String
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  author     user        @relation(fields: [author_id], references: [id])
+  author_id  String      @db.Uuid
+  files      file[]
+  readMarks  read_mark[]
+}
+
+// Метки чтения сообщений в задаче
+// чтобы показать на задачах алертинг новых сообщений
+model read_mark {
+  task       task     @relation(fields: [task_id], references: [id])
+  task_id    String   @db.Uuid
+  user       user     @relation(fields: [user_id], references: [id])
+  user_id    String   @db.Uuid
+  at         DateTime @default(now()) @db.Timestamptz(6)
+  message    message  @relation(fields: [message_id], references: [id])
+  message_id String   @db.Uuid
+
+  @@unique([task_id, user_id])
+}
+
+// Файлы сообщений
+model file {
+  id           String   @id @default(uuid()) @db.Uuid
+  message      message  @relation(fields: [message_id], references: [id])
+  message_id   String   @db.Uuid
+  storrage_key String
+  name         String
+  size         Int
+  uploader     user     @relation(fields: [uploader_id], references: [id])
+  uploader_id  String   @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+}
+
+// История изменения статуса задачи
+model change_status_event {
+  id      Int      @id @default(autoincrement())
+  task    task     @relation(fields: [task_id], references: [id])
+  task_id String   @db.Uuid
+  time    DateTime @default(now()) @db.Timestamptz(6)
+  who     user     @relation(fields: [who_id], references: [id])
+  who_id  String   @db.Uuid
+  from    status   @relation("from", fields: [from_id], references: [id])
+  from_id String   @db.Uuid
+  to      status   @relation("to", fields: [to_id], references: [id])
+  to_id   String   @db.Uuid
+}
+
+// Интервалы нахождения задачи в определенном статусе
+// для аналитики, при расширении перетащить в clickhouse
+model interval {
+  id         Int      @id @default(autoincrement())
+  start_time DateTime @default(now()) @db.Timestamptz(6)
+  end_time   DateTime @default(now()) @db.Timestamptz(6)
+  status     status   @relation(fields: [status_id], references: [id])
+  status_id  String   @db.Uuid
+  user       user     @relation(fields: [user_id], references: [id])
+  user_id    String   @db.Uuid
+  task       task     @relation(fields: [task_id], references: [id])
+  task_id    String   @db.Uuid
+}
+
+// Пресет набора статусов, для быстрого создания статусов в новом workspace
+model statuses_preset {
+  id            String          @id @default(uuid()) @db.Uuid
+  name          String
+  user          user            @relation(fields: [user_id], references: [id])
+  user_id       String          @db.Uuid
+  statusPresets status_preset[]
+}
+
+// Статус из пресета
+model status_preset {
+  id         String           @id @default(uuid()) @db.Uuid
+  preset     statuses_preset @relation(fields: [preset_id], references: [id])
+  preset_id  String           @db.Uuid
+  category   status_category
+  name       String
+  created_at DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at DateTime         @default(now()) @db.Timestamptz(6)
+  deleted_at DateTime?        @db.Timestamptz(6)
+}
+
+// Пресеты создания задач, для быстрого создания таски (ошибка для исполнителя/своя микро задача)
+// При нажатии на иконку + открывается поповер с пресетами
+model task_preset {
+  id           String    @id @default(uuid()) @db.Uuid
+  workspace    workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String    @db.Uuid
+  name         String // Имя пресета
+  executor     user?     @relation("preset_executor", fields: [executor_id], references: [id])
+  executor_id  String?   @db.Uuid
+  status       status    @relation(fields: [status_id], references: [id])
+  status_id    String    @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime? @db.Timestamptz(6)
+}
+
+// Последний вход в workspace (чтобы рисовать алертинг)
+// В списке workspaces будут алерты если в workspace есть чтото новое
+model workspace_reaction {
+  user         user      @relation(fields: [user_id], references: [id])
+  user_id      String    @db.Uuid
+  workspace    workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String    @db.Uuid
+  at           DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, workspace_id])
+}
+
+// Последний видимый статус (чтобы подсветить новые статусы)
+// на странице со списком задач
+model task_status_reaction { 
+  user    user     @relation(fields: [user_id], references: [id])
+  user_id String   @db.Uuid
+  task    task     @relation(fields: [task_id], references: [id])
+  task_id String   @db.Uuid
+  at      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, task_id])
+}
+
+enum status_category {
+  task_difinition // Определение, уточнение требований, статус для разрабов
+  work_waiting // Ожидание выполнения
+  work_in_progress // Выполняется
+  blocked // Не может выполняться по какой-либо причине
+  test_waiting // Ожидание проверки
+  test_in_progress // Проверка выполняется
+  done // Выполнено
+  canceled // Отменено
+}
+
+enum user_filter_executor {
+  all
+  me
+}
