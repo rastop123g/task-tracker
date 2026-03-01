@@ -15,8 +15,8 @@ sudo podman run -d --replace --name track-s3 -p 9000:9000 -p 9001:9001 -v ./stor
 
 cleanup() {
     echo "Остановка..."
-    sudo podman stop track-pg track-nats track-redis
-    sudo podman rm track-pg track-nats track-redis
+    sudo podman stop track-pg track-nats track-redis track-s3
+    sudo podman rm track-pg track-nats track-redis track-s3
     exit 0
 }
 
