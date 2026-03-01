@@ -25,6 +25,7 @@ pub fn avatar_router(res: AppResources) -> Router<AppResources> {
             post(upload_avatar).layer(middleware::from_fn_with_state(res, auth_middleware)),
         )
         .route("/{user_id}", axum::routing::get(get_avatar))
+        //TODO: delete avatar
         .layer(DefaultBodyLimit::max(1024 * 1024 * 20)) // 20MB
 }
 
@@ -34,6 +35,9 @@ async fn upload_avatar(
     Path(user_id): Path<Uuid>,
     mut req: Multipart,
 ) -> ApiResult<impl IntoResponse> {
+    //TODO: check user_id
+    //TODO: check user_id == auth_user_id
+    //TODO: Remove old avatar from s3
     while let Some(field) = req
         .next_field()
         .await
