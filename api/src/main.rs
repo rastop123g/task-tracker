@@ -41,8 +41,9 @@ async fn serve() -> anyhow::Result<()> {
 
     let res = AppResources { db, nats, redis, config: config.clone() };
 
-    let router = app_router(res);
+    let router = app_router(res.clone()).with_state(res);
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
+    tracing::info!("Listening on {}:{}", config.host, config.port);
     axum::serve(listener, router).await?;
 
     Ok(())

@@ -1,7 +1,8 @@
 use std::time::Duration;
-
 use anyhow::Context;
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
+
+pub mod user;
 
 pub type DbPool = Pool<Postgres>;
 

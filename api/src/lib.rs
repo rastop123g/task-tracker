@@ -5,3 +5,7 @@ pub mod db;
 pub mod router;
 pub mod nats;
 pub mod redis;
+pub mod error;
+pub mod mappings;
+pub mod validation;
+pub mod jwt;

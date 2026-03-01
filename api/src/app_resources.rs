@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AppResources {
     pub db: sqlx::PgPool,
     pub nats: crate::nats::NatsClient,

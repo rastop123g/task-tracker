@@ -1,4 +1,4 @@
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct Config {
     pub host: String,
     pub port: u16,
@@ -7,6 +7,8 @@ pub struct Config {
     pub env_filter: String,
     pub nats_url: String,
     pub redis_url: String,
+    pub jwt_secret: String,
+    pub validate_email_prefix: String,
 }
 
 impl Config {
@@ -19,6 +21,8 @@ impl Config {
             env_filter: std::env::var("APP_FILTER").unwrap_or(String::from("debug")),
             nats_url: std::env::var("NATS_URL").unwrap_or(String::from("nats://localhost:4222")),
             redis_url: std::env::var("REDIS_URL").unwrap_or(String::from("redis://localhost:6379")),
+            jwt_secret: std::env::var("JWT_SECRET").unwrap_or(String::from("secret")),
+            validate_email_prefix: std::env::var("VALIDATE_EMAIL_PREFIX").unwrap_or(String::from("http://localhost:8045/api/v1/auth/verify")),
         }
     }
 }

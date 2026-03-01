@@ -12,7 +12,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@protocol': fileURLToPath(new URL('../ts_protocol/bindings', import.meta.url))
     },
   },
 })

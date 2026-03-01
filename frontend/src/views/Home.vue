@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import type { LoginRequest } from '@protocol/LoginRequest'
 
+const req: LoginRequest = {
+  email: 'test@test.com',
+  password: '123456',
+}
 </script>
 
 <template>
