@@ -11,6 +11,7 @@ model app_user {
   id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                 String
   avatar               String?
+  avatar_preview       String?
   email                String // Только один email с подтверждением (задача бекенда)
   confirmed            Boolean                 @default(false) // Подтверждение по электронной почте
   password             String // hashed
@@ -168,13 +169,6 @@ model message_file {
   uploader     app_user     @relation(fields: [uploader_id], references: [id])
   uploader_id  String   @db.Uuid
   created_at   DateTime @default(now()) @db.Timestamptz(6)
-}
-
-model avatar {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  storrage_key String
-  storrage_preview String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
 }
 
 // История изменения статуса задачи

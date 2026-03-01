@@ -11,6 +11,7 @@ pub struct User {
     pub password: String,
     pub confirmed: bool,
     pub avatar: Option<String>,
+    pub avatar_preview: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -22,14 +23,16 @@ pub struct NewUser {
     pub email: String,
     pub password: String,
     pub avatar: Option<String>,
+    pub avatar_preview: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct UpdateUser {
     pub name: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
     pub avatar: Option<String>,
+    pub avatar_preview: Option<String>,
 }
 
 impl NewUser {
@@ -37,14 +40,15 @@ impl NewUser {
         let user = sqlx::query_as!(
             User,
             r#"
-            INSERT INTO app_user (name, email, password, avatar)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO app_user (name, email, password, avatar, avatar_preview)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *
         "#,
             self.name,
             self.email,
             self.password,
             self.avatar,
+            self.avatar_preview,
         )
         .fetch_one(db)
         .await?;
@@ -62,14 +66,16 @@ impl UpdateUser {
                 name = COALESCE($1, name),
                 email = COALESCE($2, email),
                 password = COALESCE($3, password),
-                avatar = COALESCE($4, avatar)
-            WHERE id = $5
+                avatar = COALESCE($4, avatar),
+                avatar_preview = COALESCE($5, avatar_preview)
+            WHERE id = $6
             RETURNING *
         "#,
             self.name,
             self.email,
             self.password,
             self.avatar,
+            self.avatar_preview,
             id,
         )
         .fetch_optional(db)

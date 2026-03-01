@@ -15,7 +15,8 @@ impl TryFrom<protocol::auth::RegisterRequest> for db::user::NewUser {
             name: req.name,
             email: req.email,
             password,
-            avatar: req.avatar_id.map(|id| id.to_string()),
+            avatar: None,
+            avatar_preview: None,
         })
     }
 }

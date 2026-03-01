@@ -72,7 +72,6 @@ pub async fn login(
         let refresh_token = jwt::create(&user.id, refresh_token_exp, &app.config)?;
         Ok(Json(LoginResponse {
             user_id: user.id,
-            avatar_id: user.avatar,
             token,
             refresh_token,
             email: user.email,

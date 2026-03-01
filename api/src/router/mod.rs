@@ -2,6 +2,7 @@ use axum::Router;
 
 use crate::app_resources::AppResources;
 pub mod auth;
+pub mod avatar;
 
 pub fn app_router(res: AppResources) -> Router<AppResources> {
     Router::new()
@@ -10,5 +11,7 @@ pub fn app_router(res: AppResources) -> Router<AppResources> {
 }
 
 pub fn apiv1_router(res: AppResources) -> Router<AppResources> {
-    Router::new().nest("/auth", auth::auth_router())
+    Router::new()
+        .nest("/auth", auth::auth_router())
+        .nest("/avatar", avatar::avatar_router(res))
 }

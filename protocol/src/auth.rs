@@ -8,8 +8,6 @@ pub struct RegisterRequest {
     pub name: String,
     pub email: String,
     pub password: String,
-    #[ts(type = "string | undefined")]
-    pub avatar_id: Option<Uuid>,
 }
 
 #[derive(Serialize, Deserialize, ts_rs::TS)]
@@ -25,8 +23,6 @@ pub struct LoginResponse {
     #[ts(type = "string")]
     pub user_id: Uuid,
     pub email: String,
-    #[ts(type = "string | undefined")]
-    pub avatar_id: Option<String>,
     pub token: String,
     pub refresh_token: String,
     #[ts(type = "string")]

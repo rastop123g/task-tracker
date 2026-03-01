@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use api::{app_resources::AppResources, cli, config::Config, db::init_pool, router::app_router};
-use axum::Router;
+use aws_config::{BehaviorVersion, Region, SdkConfig};
+use aws_sdk_s3::config::{Credentials, SharedCredentialsProvider};
 use clap::Parser;
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -38,11 +39,35 @@ async fn serve() -> anyhow::Result<()> {
     let nats = api::nats::init_nats_client(&config).await?;
     let redis = api::redis::create_redis_pool(&config.redis_url).await?;
     let config = Arc::new(config);
+    let creds = Credentials::builder()
+        .access_key_id(config.s3.access_key_id.clone())
+        .secret_access_key(config.s3.secret_access_key.clone())
+        .provider_name("local_provider")
+        .build();
+    let provider = SharedCredentialsProvider::new(creds);
+    let s3_config = SdkConfig::builder()
+        .behavior_version(BehaviorVersion::latest())
+        .region(Region::new(config.s3.region.clone()))
+        .endpoint_url(config.s3.endpoint.clone())
+        .credentials_provider(provider)
+        .build();
+    let s3_config = aws_sdk_s3::config::Builder::from(&s3_config)
+        .force_path_style(config.s3.force_path_style)
+        .build();
+    tracing::debug!("s3 config: {:?}", s3_config);
+    let s3 = aws_sdk_s3::Client::from_conf(s3_config);
 
-    let res = AppResources { db, nats, redis, config: config.clone() };
+    let res = AppResources {
+        db,
+        nats,
+        redis,
+        config: config.clone(),
+        s3,
+    };
 
     let router = app_router(res.clone()).with_state(res);
-    let listener = tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
+    let listener =
+        tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     tracing::info!("Listening on {}:{}", config.host, config.port);
     axum::serve(listener, router).await?;
 

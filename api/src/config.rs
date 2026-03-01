@@ -9,6 +9,17 @@ pub struct Config {
     pub redis_url: String,
     pub jwt_secret: String,
     pub validate_email_prefix: String,
+    pub s3: S3Config,
+}
+
+#[derive(serde::Deserialize, Clone, Debug)]
+pub struct S3Config {
+    pub endpoint: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub bucket: String,
+    pub region: String,
+    pub force_path_style: bool,
 }
 
 impl Config {
@@ -23,6 +34,14 @@ impl Config {
             redis_url: std::env::var("REDIS_URL").unwrap_or(String::from("redis://localhost:6379")),
             jwt_secret: std::env::var("JWT_SECRET").unwrap_or(String::from("secret")),
             validate_email_prefix: std::env::var("VALIDATE_EMAIL_PREFIX").unwrap_or(String::from("http://localhost:8045/api/v1/auth/verify")),
+            s3: S3Config {
+                endpoint: std::env::var("S3_ENDPOINT").unwrap_or(String::from("http://localhost:9000")),
+                access_key_id: std::env::var("S3_ACCESS_KEY_ID").unwrap_or(String::from("minioadmin")),
+                secret_access_key: std::env::var("S3_SECRET_ACCESS_KEY").unwrap_or(String::from("minioadmin")),
+                bucket: std::env::var("S3_BUCKET").unwrap_or(String::from("tasktrackerfiles")),
+                region: std::env::var("S3_REGION").unwrap_or(String::from("us-east-1")),
+                force_path_style: std::env::var("S3_FORCE_PATH_STYLE").unwrap_or(String::from("false")).parse().unwrap(),
+            },
         }
     }
 }
