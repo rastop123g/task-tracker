@@ -1,7 +1,9 @@
 use std::fmt;
 
 use axum::{Json, http::StatusCode, response::IntoResponse};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::{ToSchema, openapi::schema};
 
 use crate::error::unauthotized::UnauthotizedError;
 pub mod unauthotized;
@@ -51,6 +53,13 @@ impl IntoResponse for ApiError {
             ),
             ApiError::CustomHttp(status, reason) => (status, reason),
         };
-        (status, Json(json!({ "error": reason }))).into_response()
+        (status, Json(ApiErrorResponse { error: reason })).into_response()
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[schema(description = "Api Error")]
+pub struct ApiErrorResponse {
+    /// Error reason
+    pub error: String,
 }

@@ -9,3 +9,5 @@ pub mod error;
 pub mod mappings;
 pub mod validation;
 pub mod jwt;
+pub mod services;
+pub mod swagger;

@@ -7,12 +7,13 @@ use protocol::auth::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use utoipa::{IntoParams, OpenApi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     app_resources::AppResources,
     db::{self, user::User},
-    error::{ApiError, ApiResult, unauthotized::UnauthotizedError},
+    error::{ApiError, ApiErrorResponse, ApiResult, unauthotized::UnauthotizedError},
     jwt,
 };
 
@@ -24,6 +25,17 @@ pub fn auth_router() -> Router<AppResources> {
         .route("/verify", axum::routing::get(verify_email))
 }
 
+#[utoipa::path(
+    post,
+    path = "/register",
+    tag = "auth",
+    request_body = RegisterRequest,
+    responses(
+        (status = 200, description = "OK", body = String),
+        (status = 400, description = "Bad Request", body = ApiErrorResponse),
+    ),
+)]
+/// Register new user
 pub async fn register(
     State(app): State<AppResources>,
     Json(req): Json<RegisterRequest>,
@@ -46,6 +58,17 @@ pub async fn register(
     Ok("ok".into())
 }
 
+#[utoipa::path(
+    post,
+    path = "/login",
+    tag = "auth",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "OK", body = LoginResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+    ),
+)]
+/// Login user
 pub async fn login(
     State(app): State<AppResources>,
     Json(req): Json<LoginRequest>,
@@ -84,6 +107,17 @@ pub async fn login(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/refresh",
+    tag = "auth",
+    request_body = RefreshTokenRequest,
+    responses(
+        (status = 200, description = "OK", body = RefreshTokenResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+    ),
+)]
+/// Refresh user token
 pub async fn refresh_token(
     State(app): State<AppResources>,
     Json(req): Json<RefreshTokenRequest>,
@@ -114,16 +148,34 @@ pub async fn refresh_token(
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, IntoParams)]
 pub struct VerifyEmailRequest {
+    /// Token
     pub token: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
+#[schema(description = "Verify Email Response")]
 pub struct VerifyEmailResponse {
+    /// Status
     pub status: String,
 }
 
+#[utoipa::path(
+    get,
+    path = "/verify",
+    tag = "auth",
+    params(
+        VerifyEmailRequest,
+    ),
+    responses(
+        (status = 200, description = "OK", body = VerifyEmailResponse),
+        (status = 404, description = "Not Found", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        
+    ),
+)]
+/// Verify email
 pub async fn verify_email(
     State(app): State<AppResources>,
     Query(req): Query<VerifyEmailRequest>,
@@ -181,3 +233,11 @@ pub async fn auth_middleware(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthUser(Uuid);
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(register, login, refresh_token, verify_email),
+    components(schemas(RegisterRequest, LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, VerifyEmailResponse)),
+    tags((name = "auth", description = "Authentication")),
+)]
+pub struct AuthApiDoc;

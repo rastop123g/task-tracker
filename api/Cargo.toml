@@ -42,3 +42,5 @@ hex = "0.4.3"
 aws-config = { version = "1.8.14", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1.124.0"
 nanoid = "0.4.0"
+utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "uuid", "preserve_order"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }

@@ -1,10 +1,16 @@
 use std::sync::Arc;
 
-use api::{app_resources::AppResources, cli, config::Config, db::init_pool, router::app_router};
+use api::{
+    app_resources::AppResources, cli, config::Config, db::init_pool, router::app_router,
+    swagger::ApiDoc,
+};
 use aws_config::{BehaviorVersion, Region, SdkConfig};
 use aws_sdk_s3::config::{Credentials, SharedCredentialsProvider};
+use axum::Router;
 use clap::Parser;
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -65,7 +71,10 @@ async fn serve() -> anyhow::Result<()> {
         s3,
     };
 
-    let router = app_router(res.clone()).with_state(res);
+    let router = Router::new()
+        .merge(app_router(res.clone()))
+        .with_state(res)
+        .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()));
     let listener =
         tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     tracing::info!("Listening on {}:{}", config.host, config.port);

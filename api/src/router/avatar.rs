@@ -9,12 +9,13 @@ use axum::{
     routing::post,
 };
 use nanoid::nanoid;
+use utoipa::{OpenApi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     app_resources::AppResources,
     db,
-    error::{ApiError, ApiResult},
+    error::{ApiError, ApiErrorResponse, ApiResult},
     router::auth::auth_middleware,
 };
 
@@ -29,7 +30,28 @@ pub fn avatar_router(res: AppResources) -> Router<AppResources> {
         .layer(DefaultBodyLimit::max(1024 * 1024 * 20)) // 20MB
 }
 
-#[axum::debug_handler]
+#[derive(ToSchema)]
+pub struct UploadAvatar {
+    /// File to upload
+    #[schema(value_type = String, format = Binary)]
+    pub avatar: Vec<u8>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/{user_id}",
+    tag = "avatar",
+    request_body(content_type = "multipart/form-data", content = UploadAvatar),
+    responses(
+        (status = 200, description = "OK"),
+        (status = 400, description = "Bad Request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+    ),
+    params(
+        ("user_id" = Uuid, Path, description = "User ID"),
+    ),
+)]
 async fn upload_avatar(
     State(app): State<AppResources>,
     Path(user_id): Path<Uuid>,
@@ -98,7 +120,17 @@ async fn upload_avatar(
     Ok(Json(serde_json::json!({"status": "ok"})))
 }
 
-#[axum::debug_handler]
+#[utoipa::path(
+    get,
+    path = "/{user_id}",
+    tag = "avatar",
+    responses(
+        (status = 200, description = "OK"),
+    ),
+    params(
+        ("user_id" = Uuid, Path, description = "User ID"),
+    ),
+)]
 async fn get_avatar(
     State(app): State<AppResources>,
     Path(user_id): Path<Uuid>,
@@ -149,3 +181,11 @@ async fn get_avatar(
         Err(ApiError::NotFound("user".to_string()))
     }
 }
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(get_avatar, upload_avatar),
+    components(schemas(ApiErrorResponse, UploadAvatar)),
+    tags((name = "avatar", description = "Upload/Get Avatar for users")),
+)]
+pub struct AvatarApiDoc;
