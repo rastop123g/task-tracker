@@ -21,3 +21,25 @@ cargo sqlx migrate run
 ```
 cargo run -- serve
 ```
+
+## Фронтенд (pnpm)
+- Требования: Node.js `>=20.19`, `pnpm`
+- Все команды выполнять из папки `frontend`.
+
+```sh
+cd frontend
+pnpm install
+pnpm dev
+```
+
+- Проверка перед коммитом:
+
+```sh
+pnpm type-check
+pnpm build
+pnpm lint
+```
+
+## Запускаемые сервера
+- http://localhost:5173 (front)
+- http://localhost:8045 (back)

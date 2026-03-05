@@ -8,10 +8,5 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div
-    data-slot="field-content"
-    :class="cn('group/field-content flex flex-1 flex-col gap-1.5 leading-snug', props.class)"
-  >
-    <slot />
-  </div>
+  <div data-slot="skeleton" :class="cn('animate-pulse rounded-md bg-accent', props.class)" />
 </template>

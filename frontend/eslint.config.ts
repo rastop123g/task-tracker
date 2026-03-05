@@ -22,5 +22,14 @@ export default defineConfigWithVueTs(
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
+  // shadcn-style UI primitives and views use intentional single-word names
+  {
+    name: 'app/single-word-components',
+    files: ['src/components/ui/**/*.vue', 'src/views/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 )

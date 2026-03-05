@@ -13,7 +13,11 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@protocol/*": [
+        "../ts_protocol/bindings/*"
       ]
-    }
+    },
+    "strict": true
   }
 }
