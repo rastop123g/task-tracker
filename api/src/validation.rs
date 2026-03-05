@@ -1,55 +1,57 @@
-use crate::error::{ApiError, ApiResult};
+use crate::error::{ApiError, ApiResult, validation::ValidationErrorKind};
+
+type ValidationResult = Result<(), ValidationErrorKind>;
 
 pub trait AppValidateEmail {
-    fn validate_email(&self) -> ApiResult<()>;
+    fn validate_email(&self) -> ValidationResult;
 }
 
 impl AppValidateEmail for String {
-    fn validate_email(&self) -> ApiResult<()> {
+    fn validate_email(&self) -> ValidationResult {
         if !validator::ValidateEmail::validate_email(&self) {
-            return Err(ApiError::BadRequest("invalid email".to_string()));
+            return Err(ValidationErrorKind::Email);
         }
         Ok(())
     }
 }
 
 pub trait ValidateStringLength {
-    fn max_length(&self, field: &str, max: usize) -> ApiResult<()>;
-    fn min_length(&self, field: &str, min: usize) -> ApiResult<()>;
-    fn length(&self, field: &str, min: usize, max: usize) -> ApiResult<()>;
+    fn max_length(&self, max: usize) -> ValidationResult;
+    fn min_length(&self, min: usize) -> ValidationResult;
+    fn length(&self, min: usize, max: usize) -> ValidationResult;
 }
 
 impl ValidateStringLength for String {
-    fn max_length(&self, field: &str, max: usize) -> ApiResult<()> {
+    fn max_length(&self, max: usize) -> ValidationResult {
         if self.chars().count() > max {
-            return Err(ApiError::BadRequest(format!("field {} - length must be at most {} characters", field, max)));
+            return Err(ValidationErrorKind::MaxLength(max));
         }
         Ok(())
     }
 
-    fn min_length(&self, field: &str, min: usize) -> ApiResult<()> {
+    fn min_length(&self, min: usize) -> ValidationResult {
         if self.chars().count() < min {
-            return Err(ApiError::BadRequest(format!("field {} - length must be at least {} characters", field, min)));
+            return Err(ValidationErrorKind::MinLength(min));
         }
         Ok(())
     }
 
-    fn length(&self, field: &str, min: usize, max: usize) -> ApiResult<()> {
+    fn length(&self, min: usize, max: usize) -> ValidationResult {
         if self.chars().count() < min || self.chars().count() > max {
-            return Err(ApiError::BadRequest(format!("field {} length must be between {} and {} characters", field, min, max)));
+            return Err(ValidationErrorKind::Length{min, max});
         }
         Ok(())
     }
 }
 
 pub trait UrlValidator {
-    fn validate_url(&self, field: &str) -> ApiResult<()>;
+    fn validate_url(&self) -> ValidationResult;
 }
 
 impl UrlValidator for String {
-    fn validate_url(&self, field: &str) -> ApiResult<()> {
+    fn validate_url(&self) -> ValidationResult {
         if !validator::ValidateUrl::validate_url(&self) {
-            return Err(ApiError::BadRequest(format!("field {} - invalid url", field)));
+            return Err(ValidationErrorKind::Url);
         }
         Ok(())
     }

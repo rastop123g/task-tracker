@@ -2,9 +2,9 @@ use axum::{
     Json, Router, body::Body, extract::{Query, State}, http::{Request, StatusCode}, middleware::Next, response::Response
 };
 use chrono::{Duration, Utc};
-use protocol::auth::{
+use crate::{entity::auth::RegisterUserEntity, protocol::{auth::{
     LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest,
-};
+}, error::{UnauthotizedErrorResponse, ValidationErrorResponse}}};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use utoipa::{IntoParams, OpenApi, ToSchema};
@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     app_resources::AppResources,
-    db::{self, user::User},
+    db::{self, user::DBUser},
     error::{ApiError, ApiErrorResponse, ApiResult, unauthotized::UnauthotizedError},
     jwt,
 };
@@ -32,7 +32,7 @@ pub fn auth_router() -> Router<AppResources> {
     request_body = RegisterRequest,
     responses(
         (status = 200, description = "OK", body = String),
-        (status = 400, description = "Bad Request", body = ApiErrorResponse),
+        (status = 400, description = "Bad Request", body = ValidationErrorResponse),
     ),
 )]
 /// Register new user
@@ -41,11 +41,12 @@ pub async fn register(
     Json(req): Json<RegisterRequest>,
 ) -> ApiResult<String> {
     let mut conn = app.db.acquire().await?;
-    let users = User::get_by_email(&req.email, &mut conn).await?;
+    let users = DBUser::get_by_email(&req.email, &mut conn).await?;
     if users.iter().any(|u| u.confirmed == true) {
         return Err(ApiError::BadRequest("email already used".to_string()));
     }
-    let new_user = db::user::NewUser::try_from(req)?;
+    let e = RegisterUserEntity::try_from(req)?;
+    let new_user = db::user::DBNewUser::from(e);
     let created = new_user.create(&mut conn).await?;
     let confirmation_token_exp = Utc::now() + Duration::hours(3);
     let confirmation_token = jwt::create(&created.id, confirmation_token_exp, &app.config)?;
@@ -65,7 +66,7 @@ pub async fn register(
     request_body = LoginRequest,
     responses(
         (status = 200, description = "OK", body = LoginResponse),
-        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
     ),
 )]
 /// Login user
@@ -77,7 +78,7 @@ pub async fn login(
     let password = Sha256::digest(req.password.as_bytes());
     let hex_password = hex::encode(password);
     let mut conn = app.db.acquire().await?;
-    let users = db::user::User::check_credentials(&email, &hex_password, &mut conn).await?;
+    let users = db::user::DBUser::check_credentials(&email, &hex_password, &mut conn).await?;
     if users.len() == 0 {
         return Err(ApiError::Unauthorized(UnauthotizedError::BadCredentials));
     }
@@ -114,7 +115,7 @@ pub async fn login(
     request_body = RefreshTokenRequest,
     responses(
         (status = 200, description = "OK", body = RefreshTokenResponse),
-        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
     ),
 )]
 /// Refresh user token
@@ -124,7 +125,7 @@ pub async fn refresh_token(
 ) -> ApiResult<Json<RefreshTokenResponse>> {
     let user_id = jwt::verify(&req.refresh_token, &app.config)?;
     let mut conn = app.db.acquire().await?;
-    let user = db::user::User::get(&user_id, &mut conn).await?;
+    let user = db::user::DBUser::get(&user_id, &mut conn).await?;
     if let Some(user) = user {
         if user.deleted_at.is_some() {
             return Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted));
@@ -170,8 +171,8 @@ pub struct VerifyEmailResponse {
     ),
     responses(
         (status = 200, description = "OK", body = VerifyEmailResponse),
-        (status = 404, description = "Not Found", body = ApiErrorResponse),
-        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 404, description = "Not Found"),
+        (status = 403, description = "Forbidden"),
         
     ),
 )]
@@ -183,7 +184,7 @@ pub async fn verify_email(
     let token = req.token;
     let user_id = jwt::verify(&token, &app.config)?;
     let mut conn = app.db.acquire().await?;
-    let user = db::user::User::get(&user_id, &mut conn).await?;
+    let user = db::user::DBUser::get(&user_id, &mut conn).await?;
     if let Some(user) = user {
         if user.deleted_at.is_some() {
             return Err(ApiError::CustomHttp(
@@ -197,7 +198,7 @@ pub async fn verify_email(
                 "email already confirmed".to_string(),
             ));
         }
-        User::confirm_email(&user_id, &mut conn).await?;
+        DBUser::confirm_email(&user_id, &mut conn).await?;
         Ok(Json(VerifyEmailResponse {
             status: "ok".to_string(),
         }))
@@ -237,7 +238,7 @@ pub struct AuthUser(Uuid);
 #[derive(OpenApi)]
 #[openapi(
     paths(register, login, refresh_token, verify_email),
-    components(schemas(RegisterRequest, LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, VerifyEmailResponse)),
+    components(schemas(RegisterRequest, LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, VerifyEmailResponse, UnauthotizedErrorResponse)),
     tags((name = "auth", description = "Authentication")),
 )]
 pub struct AuthApiDoc;

@@ -13,10 +13,7 @@ use utoipa::{OpenApi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    app_resources::AppResources,
-    db,
-    error::{ApiError, ApiErrorResponse, ApiResult},
-    router::auth::auth_middleware,
+    app_resources::AppResources, db, error::{ApiError, ApiErrorResponse, ApiResult}, protocol::error::UnauthotizedErrorResponse, router::auth::auth_middleware
 };
 
 pub fn avatar_router(res: AppResources) -> Router<AppResources> {
@@ -42,10 +39,11 @@ pub struct UploadAvatar {
     path = "/{user_id}",
     tag = "avatar",
     request_body(content_type = "multipart/form-data", content = UploadAvatar),
+    security(("api_key" = [])),
     responses(
         (status = 200, description = "OK"),
         (status = 400, description = "Bad Request", body = ApiErrorResponse),
-        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
     ),
     params(
@@ -110,7 +108,7 @@ async fn upload_avatar(
             .map_err(|_| ApiError::InternalServerError)?;
 
         let mut conn = app.db.acquire().await?;
-        let upd_user = db::user::UpdateUser {
+        let upd_user = db::user::DBUpdateUser {
             avatar: Some(storage_key.clone()),
             avatar_preview: Some(storage_key.clone()),
             ..Default::default()
@@ -137,7 +135,7 @@ async fn get_avatar(
     headers: HeaderMap,
 ) -> ApiResult<Response<Body>> {
     let mut conn = app.db.acquire().await?;
-    let user = db::user::User::get(&user_id, &mut conn).await?;
+    let user = db::user::DBUser::get(&user_id, &mut conn).await?;
     if let Some(user) = user {
         let storage_key = user
             .avatar
@@ -185,7 +183,7 @@ async fn get_avatar(
 #[derive(OpenApi)]
 #[openapi(
     paths(get_avatar, upload_avatar),
-    components(schemas(ApiErrorResponse, UploadAvatar)),
+    components(schemas(ApiErrorResponse, UploadAvatar, UnauthotizedErrorResponse)),
     tags((name = "avatar", description = "Upload/Get Avatar for users")),
 )]
 pub struct AvatarApiDoc;

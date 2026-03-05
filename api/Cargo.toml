@@ -36,7 +36,6 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "time", "fmt"] }
 ts-rs = "12.0.1"
 uuid = { version = "1.21.0", features = ["v4", "serde"] }
-protocol = { path = "../protocol" }
 validator = { version = "0.20.0", features = ["derive"] }
 hex = "0.4.3"
 aws-config = { version = "1.8.14", features = ["behavior-version-latest"] }

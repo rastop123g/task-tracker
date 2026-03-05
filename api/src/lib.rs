@@ -11,3 +11,5 @@ pub mod validation;
 pub mod jwt;
 pub mod services;
 pub mod swagger;
+pub mod protocol;
+pub mod entity;

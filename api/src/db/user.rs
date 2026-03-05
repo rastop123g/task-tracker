@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::error::ApiResult;
 
 #[derive(sqlx::FromRow, Debug, Clone)]
-pub struct User {
+pub struct DBUser {
     pub id: Uuid,
     pub name: String,
     pub email: String,
@@ -18,7 +18,7 @@ pub struct User {
 }
 
 #[derive(Debug, Clone)]
-pub struct NewUser {
+pub struct DBNewUser {
     pub name: String,
     pub email: String,
     pub password: String,
@@ -27,7 +27,7 @@ pub struct NewUser {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct UpdateUser {
+pub struct DBUpdateUser {
     pub name: Option<String>,
     pub email: Option<String>,
     pub password: Option<String>,
@@ -35,10 +35,10 @@ pub struct UpdateUser {
     pub avatar_preview: Option<String>,
 }
 
-impl NewUser {
-    pub async fn create(&self, db: &mut sqlx::PgConnection) -> ApiResult<User> {
+impl DBNewUser {
+    pub async fn create(&self, db: &mut sqlx::PgConnection) -> ApiResult<DBUser> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             INSERT INTO app_user (name, email, password, avatar, avatar_preview)
             VALUES ($1, $2, $3, $4, $5)
@@ -56,10 +56,10 @@ impl NewUser {
     }
 }
 
-impl UpdateUser {
-    pub async fn update(&self, id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<User>> {
+impl DBUpdateUser {
+    pub async fn update(&self, id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             UPDATE app_user
             SET
@@ -84,10 +84,10 @@ impl UpdateUser {
     }
 }
 
-impl User {
-    pub async fn get(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<User>> {
+impl DBUser {
+    pub async fn get(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             SELECT *
             FROM app_user
@@ -100,9 +100,9 @@ impl User {
         Ok(user)
     }
 
-    pub async fn confirm_email(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<User>> {
+    pub async fn confirm_email(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             UPDATE app_user
             SET confirmed = true
@@ -126,9 +126,9 @@ impl User {
         Ok(user.is_some())
     }
 
-    pub async fn delete(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<User>> {
+    pub async fn delete(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             UPDATE app_user
             SET deleted_at = now()
@@ -146,9 +146,9 @@ impl User {
         email: &str,
         password: &str,
         db: &mut sqlx::PgConnection,
-    ) -> ApiResult<Vec<User>> {
+    ) -> ApiResult<Vec<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             SELECT *
             FROM app_user
@@ -162,9 +162,9 @@ impl User {
         Ok(user)
     }
 
-    pub async fn get_by_email(email: &str, db: &mut sqlx::PgConnection) -> ApiResult<Vec<User>> {
+    pub async fn get_by_email(email: &str, db: &mut sqlx::PgConnection) -> ApiResult<Vec<DBUser>> {
         let user = sqlx::query_as!(
-            User,
+            DBUser,
             r#"
             SELECT *
             FROM app_user

@@ -1,12 +1,16 @@
 use std::fmt;
 
+use crate::{
+    error::{unauthotized::UnauthotizedError, validation::{ValidationError, ValidationErrorNamed}},
+    protocol::error::{UnauthotizedErrorResponse, ValidationErrorResponse},
+};
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::{ToSchema, openapi::schema};
 
-use crate::error::unauthotized::UnauthotizedError;
 pub mod unauthotized;
+pub mod validation;
 
 #[derive(Debug, Clone)]
 pub enum ApiError {
@@ -15,7 +19,8 @@ pub enum ApiError {
     Forbidden,
     BadRequest(String), // reason
     InternalServerError,
-    CustomHttp(StatusCode,String),
+    CustomHttp(StatusCode, String),
+    Validation(Vec<ValidationError>),
 }
 
 impl fmt::Display for ApiError {
@@ -44,7 +49,13 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, reason) = match self {
             ApiError::NotFound(model) => (StatusCode::NOT_FOUND, format!("{} not found", model)),
-            ApiError::Unauthorized(reason) => (StatusCode::UNAUTHORIZED, reason.to_string()),
+            ApiError::Unauthorized(reason) => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(UnauthotizedErrorResponse { reason }),
+                )
+                    .into_response();
+            }
             ApiError::Forbidden => (StatusCode::FORBIDDEN, "forbidden".to_string()),
             ApiError::BadRequest(reason) => (StatusCode::BAD_REQUEST, reason),
             ApiError::InternalServerError => (
@@ -52,6 +63,12 @@ impl IntoResponse for ApiError {
                 "internal server error".to_string(),
             ),
             ApiError::CustomHttp(status, reason) => (status, reason),
+            ApiError::Validation(errors) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(ValidationErrorResponse { errors: errors.into_iter().map(|e| e.into()).collect() }),
+                ).into_response();
+            }
         };
         (status, Json(ApiErrorResponse { error: reason })).into_response()
     }

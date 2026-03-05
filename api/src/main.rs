@@ -60,7 +60,6 @@ async fn serve() -> anyhow::Result<()> {
     let s3_config = aws_sdk_s3::config::Builder::from(&s3_config)
         .force_path_style(config.s3.force_path_style)
         .build();
-    tracing::debug!("s3 config: {:?}", s3_config);
     let s3 = aws_sdk_s3::Client::from_conf(s3_config);
 
     let res = AppResources {
