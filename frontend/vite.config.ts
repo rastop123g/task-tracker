@@ -17,4 +17,12 @@ export default defineConfig({
       '@protocol': fileURLToPath(new URL('../ts_protocol/bindings', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8045',
+        changeOrigin: true,
+      },
+    },
+  },
 })

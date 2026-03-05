@@ -31,3 +31,23 @@ cargo run -- serve
 ```
 cargo test
 ```
+
+## Фронтенд (pnpm)
+- Требования: Node.js `>=20.19`, `pnpm`
+- Все команды выполнять из папки `frontend`.
+
+```sh
+cd frontend
+pnpm install
+pnpm dev
+```
+
+- Проверка перед коммитом:
+
+```sh
+pnpm type-check
+pnpm build
+pnpm lint
+```
+
+- Фронт доступен по http://localhost:5173 (front)
