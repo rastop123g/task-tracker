@@ -5,7 +5,8 @@ use uuid::Uuid;
 use crate::{
     cache::RedisCache,
     db::user::DBUser,
-    error::{ApiError, ApiResult, bad_request::BadRequestError},
+    error::{ApiError, ApiResult, bad_request::BadRequestError, unauthotized::UnauthotizedError},
+    protocol::user::UserResponse,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,6 +30,16 @@ impl UserEntity {
         }
         if self.confirmed == false {
             return Err(ApiError::BadRequest(BadRequestError::UserNotConfirmed));
+        }
+        Ok(())
+    }
+
+    pub fn check_self(&self) -> ApiResult<()> {
+        if self.deleted_at.is_some() {
+            return Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted));
+        }
+        if self.confirmed == false {
+            return Err(ApiError::Unauthorized(UnauthotizedError::EmailNotConfirmed));
         }
         Ok(())
     }
@@ -62,5 +73,20 @@ impl RedisCache<Uuid> for UserEntity {
 
     fn cache_exp(&self) -> u64 {
         60 * 60 * 24 * 7 // 7 days
+    }
+}
+
+impl From<UserEntity> for UserResponse {
+    fn from(user: UserEntity) -> Self {
+        Self {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            avatar_preview: user.avatar_preview,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            deleted_at: user.deleted_at,
+        }
     }
 }

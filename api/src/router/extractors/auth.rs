@@ -6,11 +6,12 @@ use uuid::Uuid;
 
 use crate::{
     app_resources::AppResources,
+    entity::user::UserEntity,
     error::{ApiError, unauthotized::UnauthotizedError},
     jwt,
 };
 
-pub struct UserAuth(pub Uuid);
+pub struct UserAuth(pub UserEntity);
 pub struct AdminAuth(pub Uuid);
 
 #[derive(Debug, Clone)]
@@ -42,8 +43,14 @@ where
             .ok_or(ApiError::Unauthorized(UnauthotizedError::MissingToken))?;
 
         let user_id = jwt::verify(token, &app.config)?;
-
-        Ok(UserAuth(user_id))
+        let mut conn = app.db.acquire().await?;
+        let user = UserEntity::get_by_id(&user_id, &app.redis, &mut conn).await?;
+        if let Some(user) = user {
+            user.check_user()?;
+            Ok(UserAuth(user))
+        } else {
+            Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted))
+        }
     }
 }
 

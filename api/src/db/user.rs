@@ -180,4 +180,23 @@ impl DBUser {
         .await?;
         Ok(user)
     }
+
+    pub async fn remove_avatar(
+        id: &Uuid,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Option<DBUser>> {
+        let user = sqlx::query_as!(
+            DBUser,
+            r#"
+            UPDATE app_user
+            SET avatar = NULL, avatar_preview = NULL
+            WHERE id = $1
+            RETURNING *
+        "#,
+            id,
+        )
+        .fetch_optional(db)
+        .await?;
+        Ok(user)
+    }
 }

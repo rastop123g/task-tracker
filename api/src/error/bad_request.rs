@@ -7,4 +7,5 @@ pub enum BadRequestError {
     UserAlreadyConfirmed,
     UserDeleted,
     EmailAlreadyUsed,
+    OldPasswordWrong,
 }

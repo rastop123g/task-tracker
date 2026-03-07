@@ -9,6 +9,7 @@ pub struct AppResources {
     pub s3: aws_sdk_s3::Client,
 
     pub auth_service: crate::services::auth_service::AuthService,
+    pub user_service: crate::services::user_service::UserService,
 }
 
 impl AppResources {
@@ -22,6 +23,11 @@ impl AppResources {
         Self {
             // DI
             auth_service: crate::services::auth_service::AuthService::new(
+                db.clone(),
+                redis.clone(),
+                config.clone(),
+            ),
+            user_service: crate::services::user_service::UserService::new(
                 db.clone(),
                 redis.clone(),
                 config.clone(),

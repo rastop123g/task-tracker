@@ -9,7 +9,6 @@ use axum::{
     extract::{Query, State},
 };
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
 use utoipa::{IntoParams, OpenApi, ToSchema};
 
 use crate::{app_resources::AppResources, error::ApiResult};

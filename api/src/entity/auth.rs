@@ -70,8 +70,6 @@ impl From<LoginnedUserEntity> for LoginResponse {
             user_id: user.user.id,
             name: user.user.name,
             email: user.user.email,
-            password: user.user.password,
-            confirmed: user.user.confirmed,
             avatar: user.user.avatar,
             avatar_preview: user.user.avatar_preview,
             created_at: user.user.created_at,
