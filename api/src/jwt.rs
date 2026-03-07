@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, errors::ErrorKind};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -11,7 +11,11 @@ pub struct Claims {
     exp: usize,
 }
 
-pub fn create(user_id: &Uuid, exp: DateTime<Utc>, config: &crate::config::Config) -> ApiResult<String> {
+pub fn create(
+    user_id: &Uuid,
+    exp: DateTime<Utc>,
+    config: &crate::config::Config,
+) -> ApiResult<String> {
     let exp = exp.timestamp() as usize;
     let claims = Claims {
         sub: user_id.clone(),
@@ -31,8 +35,12 @@ pub fn verify(token: &str, config: &crate::config::Config) -> ApiResult<Uuid> {
         &DecodingKey::from_secret(config.jwt_secret.as_ref()),
         &Validation::new(Algorithm::HS256),
     );
-    decoded.map(|data| data.claims.sub).map_err(|e| match e.kind() {
-        ErrorKind::ExpiredSignature => crate::error::ApiError::Unauthorized(UnauthotizedError::TokenExpired),
-        _ => crate::error::ApiError::Unauthorized(UnauthotizedError::InvalidToken),
-    })
+    decoded
+        .map(|data| data.claims.sub)
+        .map_err(|e| match e.kind() {
+            ErrorKind::ExpiredSignature => {
+                crate::error::ApiError::Unauthorized(UnauthotizedError::TokenExpired)
+            }
+            _ => crate::error::ApiError::Unauthorized(UnauthotizedError::InvalidToken),
+        })
 }

@@ -62,13 +62,7 @@ async fn serve() -> anyhow::Result<()> {
         .build();
     let s3 = aws_sdk_s3::Client::from_conf(s3_config);
 
-    let res = AppResources {
-        db,
-        nats,
-        redis,
-        config: config.clone(),
-        s3,
-    };
+    let res = AppResources::new(db, nats, redis, config.clone(), s3);
 
     let router = Router::new()
         .merge(app_router(res.clone()))

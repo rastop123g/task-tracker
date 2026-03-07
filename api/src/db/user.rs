@@ -57,7 +57,11 @@ impl DBNewUser {
 }
 
 impl DBUpdateUser {
-    pub async fn update(&self, id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
+    pub async fn update(
+        &self,
+        id: &Uuid,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
             DBUser,
             r#"
@@ -100,7 +104,10 @@ impl DBUser {
         Ok(user)
     }
 
-    pub async fn confirm_email(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<Option<DBUser>> {
+    pub async fn confirm_email(
+        id: &Uuid,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Option<DBUser>> {
         let user = sqlx::query_as!(
             DBUser,
             r#"
@@ -117,12 +124,9 @@ impl DBUser {
     }
 
     pub async fn check_id(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<bool> {
-        let user = sqlx::query_scalar!(
-            "SELECT EXISTS(SELECT 1 FROM app_user WHERE id = $1)",
-            id,
-        )
-        .fetch_optional(db)
-        .await?;
+        let user = sqlx::query_scalar!("SELECT EXISTS(SELECT 1 FROM app_user WHERE id = $1)", id,)
+            .fetch_optional(db)
+            .await?;
         Ok(user.is_some())
     }
 
@@ -177,5 +181,3 @@ impl DBUser {
         Ok(user)
     }
 }
-
-

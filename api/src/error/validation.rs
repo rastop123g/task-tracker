@@ -24,7 +24,7 @@ impl From<ValidationError> for ValidationErrorNamed {
 pub enum ValidationErrorKind {
     MinLength(usize),
     MaxLength(usize),
-    Length{min: usize, max: usize},
+    Length { min: usize, max: usize },
     Email,
     Url,
 }

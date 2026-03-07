@@ -4,6 +4,7 @@ use utoipa::OpenApi;
 use crate::app_resources::AppResources;
 pub mod auth;
 pub mod avatar;
+pub mod extractors;
 
 pub fn app_router(res: AppResources) -> Router<AppResources> {
     Router::new()
@@ -17,9 +18,8 @@ pub fn apiv1_router(res: AppResources) -> Router<AppResources> {
         .nest("/avatar", avatar::avatar_router(res))
 }
 
-
-use self::avatar::AvatarApiDoc;
 use self::auth::AuthApiDoc;
+use self::avatar::AvatarApiDoc;
 #[derive(OpenApi)]
 #[openapi(
     nest(

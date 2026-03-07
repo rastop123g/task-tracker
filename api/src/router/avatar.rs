@@ -4,7 +4,6 @@ use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Multipart, Path, State},
     http::{HeaderMap, StatusCode, header},
-    middleware,
     response::{IntoResponse, Response},
     routing::post,
 };
@@ -13,14 +12,18 @@ use utoipa::{OpenApi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    app_resources::AppResources, db, error::{ApiError, ApiErrorResponse, ApiResult}, protocol::error::UnauthotizedErrorResponse, router::auth::auth_middleware
+    app_resources::AppResources,
+    db,
+    error::{ApiError, ApiErrorResponse, ApiResult, unauthotized::UnauthotizedError},
+    protocol::error::{ForbiddenErrorResponse, UnauthotizedErrorResponse},
+    router::extractors::auth::UserAuth,
 };
 
-pub fn avatar_router(res: AppResources) -> Router<AppResources> {
+pub fn avatar_router(_res: AppResources) -> Router<AppResources> {
     Router::new()
         .route(
             "/{user_id}",
-            post(upload_avatar).layer(middleware::from_fn_with_state(res, auth_middleware)),
+            post(upload_avatar), // .layer(middleware::from_fn_with_state(res, auth_middleware)),
         )
         .route("/{user_id}", axum::routing::get(get_avatar))
         //TODO: delete avatar
@@ -44,7 +47,7 @@ pub struct UploadAvatar {
         (status = 200, description = "OK"),
         (status = 400, description = "Bad Request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
-        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ForbiddenErrorResponse),
     ),
     params(
         ("user_id" = Uuid, Path, description = "User ID"),
@@ -52,12 +55,19 @@ pub struct UploadAvatar {
 )]
 async fn upload_avatar(
     State(app): State<AppResources>,
-    Path(user_id): Path<Uuid>,
+    UserAuth(user_id): UserAuth,
     mut req: Multipart,
 ) -> ApiResult<impl IntoResponse> {
-    //TODO: check user_id
-    //TODO: check user_id == auth_user_id
-    //TODO: Remove old avatar from s3
+    let mut conn = app.db.acquire().await?;
+    let user = db::user::DBUser::get(&user_id, &mut conn).await?;
+    let current = if let Some(user) = user {
+        if user.deleted_at.is_some() {
+            return Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted));
+        }
+        user.avatar
+    } else {
+        return Err(ApiError::NotFound("user".to_string()));
+    };
     while let Some(field) = req
         .next_field()
         .await
@@ -107,13 +117,21 @@ async fn upload_avatar(
             .await
             .map_err(|_| ApiError::InternalServerError)?;
 
-        let mut conn = app.db.acquire().await?;
         let upd_user = db::user::DBUpdateUser {
             avatar: Some(storage_key.clone()),
             avatar_preview: Some(storage_key.clone()),
             ..Default::default()
         };
         upd_user.update(&user_id, &mut conn).await?;
+        if let Some(ref avatar) = current {
+            app.s3
+                .delete_object()
+                .bucket(&app.config.s3.bucket)
+                .key(avatar)
+                .send()
+                .await
+                .map_err(|_| ApiError::InternalServerError)?;
+        }
     }
     Ok(Json(serde_json::json!({"status": "ok"})))
 }

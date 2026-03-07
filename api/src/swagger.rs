@@ -1,5 +1,11 @@
 use serde::Serialize;
-use utoipa::{Modify, OpenApi, openapi::{self, security::{HttpAuthScheme, HttpBuilder, SecurityScheme}}};
+use utoipa::{
+    Modify, OpenApi,
+    openapi::{
+        self,
+        security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    },
+};
 
 #[derive(Debug, Serialize)]
 struct AuthScheme;
@@ -20,7 +26,6 @@ impl Modify for AuthScheme {
     }
 }
 
-
 use crate::router::ApiV1Docs;
 #[derive(OpenApi)]
 #[openapi(
@@ -36,4 +41,3 @@ use crate::router::ApiV1Docs;
     nest((path = "/api/v1", api = ApiV1Docs)),
 )]
 pub struct ApiDoc;
-

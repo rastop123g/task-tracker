@@ -32,7 +32,18 @@ pub struct LoginResponse {
     /// User id (uuid)
     #[ts(type = "string")]
     pub user_id: Uuid,
+    pub name: String,
     pub email: String,
+    pub password: String,
+    pub confirmed: bool,
+    pub avatar: Option<String>,
+    pub avatar_preview: Option<String>,
+    #[ts(type = "string")]
+    pub created_at: DateTime<Utc>,
+    #[ts(type = "string")]
+    pub updated_at: DateTime<Utc>,
+    #[ts(type = "string | null")]
+    pub deleted_at: Option<DateTime<Utc>>,
     /// access token
     pub token: String,
     /// refresh token

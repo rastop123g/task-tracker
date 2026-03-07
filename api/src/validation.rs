@@ -1,4 +1,4 @@
-use crate::error::{ApiError, ApiResult, validation::ValidationErrorKind};
+use crate::error::validation::ValidationErrorKind;
 
 type ValidationResult = Result<(), ValidationErrorKind>;
 
@@ -38,7 +38,7 @@ impl ValidateStringLength for String {
 
     fn length(&self, min: usize, max: usize) -> ValidationResult {
         if self.chars().count() < min || self.chars().count() > max {
-            return Err(ValidationErrorKind::Length{min, max});
+            return Err(ValidationErrorKind::Length { min, max });
         }
         Ok(())
     }
