@@ -1,10 +1,9 @@
-use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::{error::SdkError, primitives::ByteStream};
 use axum::{
     Json, Router,
     body::Body,
     extract::{DefaultBodyLimit, Multipart, Path, State},
     http::{HeaderMap, StatusCode, header},
-    middleware,
     response::{IntoResponse, Response},
     routing::post,
 };
@@ -13,17 +12,23 @@ use utoipa::{OpenApi, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    app_resources::AppResources, db, error::{ApiError, ApiErrorResponse, ApiResult}, protocol::error::UnauthotizedErrorResponse, router::auth::auth_middleware
+    app_resources::AppResources,
+    cache::RedisCache,
+    db::{self, user::DBUser},
+    entity::user::UserEntity,
+    error::{ApiError, ApiErrorResponse, ApiResult, unauthotized::UnauthotizedError},
+    protocol::error::{ForbiddenErrorResponse, UnauthotizedErrorResponse},
+    router::extractors::auth::UserAuth,
 };
 
-pub fn avatar_router(res: AppResources) -> Router<AppResources> {
+pub fn avatar_router(_res: AppResources) -> Router<AppResources> {
     Router::new()
         .route(
-            "/{user_id}",
-            post(upload_avatar).layer(middleware::from_fn_with_state(res, auth_middleware)),
+            "/",
+            post(upload_avatar), // .layer(middleware::from_fn_with_state(res, auth_middleware)),
         )
         .route("/{user_id}", axum::routing::get(get_avatar))
-        //TODO: delete avatar
+        .route("/", axum::routing::delete(delete_avatar))
         .layer(DefaultBodyLimit::max(1024 * 1024 * 20)) // 20MB
 }
 
@@ -36,7 +41,7 @@ pub struct UploadAvatar {
 
 #[utoipa::path(
     post,
-    path = "/{user_id}",
+    path = "",
     tag = "avatar",
     request_body(content_type = "multipart/form-data", content = UploadAvatar),
     security(("api_key" = [])),
@@ -44,20 +49,14 @@ pub struct UploadAvatar {
         (status = 200, description = "OK"),
         (status = 400, description = "Bad Request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
-        (status = 403, description = "Forbidden", body = ApiErrorResponse),
-    ),
-    params(
-        ("user_id" = Uuid, Path, description = "User ID"),
+        (status = 403, description = "Forbidden", body = ForbiddenErrorResponse),
     ),
 )]
 async fn upload_avatar(
     State(app): State<AppResources>,
-    Path(user_id): Path<Uuid>,
+    UserAuth(mut user): UserAuth,
     mut req: Multipart,
 ) -> ApiResult<impl IntoResponse> {
-    //TODO: check user_id
-    //TODO: check user_id == auth_user_id
-    //TODO: Remove old avatar from s3
     while let Some(field) = req
         .next_field()
         .await
@@ -107,13 +106,27 @@ async fn upload_avatar(
             .await
             .map_err(|_| ApiError::InternalServerError)?;
 
-        let mut conn = app.db.acquire().await?;
         let upd_user = db::user::DBUpdateUser {
             avatar: Some(storage_key.clone()),
             avatar_preview: Some(storage_key.clone()),
             ..Default::default()
         };
-        upd_user.update(&user_id, &mut conn).await?;
+        let mut conn = app.db.acquire().await?;
+        let updated = upd_user.update(&user.id, &mut conn).await?;
+        let current_avatar = user.avatar.clone();
+        if let Some(updated) = updated {
+            user = UserEntity::from(updated);
+            user.cache(&app.redis).await?;
+        }
+        if let Some(ref avatar) = current_avatar {
+            app.s3
+                .delete_object()
+                .bucket(&app.config.s3.bucket)
+                .key(avatar)
+                .send()
+                .await
+                .map_err(|_| ApiError::InternalServerError)?;
+        }
     }
     Ok(Json(serde_json::json!({"status": "ok"})))
 }
@@ -149,14 +162,26 @@ async fn get_avatar(
                     .map_err(|_| ApiError::InternalServerError)?);
             }
         }
-        let obj = app
+        let resp = app
             .s3
             .get_object()
             .bucket(&app.config.s3.bucket)
             .key(&storage_key)
             .send()
-            .await
-            .map_err(|_| ApiError::InternalServerError)?;
+            .await;
+        let obj = match resp {
+            Ok(obj) => Ok(obj),
+            Err(e) => match e {
+                SdkError::ResponseError(e) => {
+                    if e.raw().status() == StatusCode::NOT_FOUND.into() {
+                        Err(ApiError::NotFound("avatar".to_string()))
+                    } else {
+                        Err(ApiError::InternalServerError)
+                    }
+                }
+                _ => Err(ApiError::InternalServerError),
+            },
+        }?;
         let data = obj
             .body
             .collect()
@@ -180,9 +205,48 @@ async fn get_avatar(
     }
 }
 
+#[utoipa::path(
+    delete,
+    path = "",
+    tag = "avatar",
+    responses(
+        (status = 200, description = "OK"),
+        (status = 400, description = "Bad Request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
+    ),
+)]
+async fn delete_avatar(
+    State(app): State<AppResources>,
+    UserAuth(user): UserAuth,
+) -> ApiResult<impl IntoResponse> {
+    let mut conn = app.db.acquire().await?;
+    let user = UserEntity::get_by_id(&user.id, &app.redis, &mut conn).await?;
+    if let Some(mut user) = user {
+        user.check_user()?;
+        if let Some(ref storage_key) = user.avatar {
+            app.s3
+                .delete_object()
+                .bucket(&app.config.s3.bucket)
+                .key(storage_key)
+                .send()
+                .await
+                .map_err(|_| ApiError::InternalServerError)?;
+            DBUser::remove_avatar(&user.id, &mut conn).await?;
+            user.avatar = None;
+            user.avatar_preview = None;
+            user.cache(&app.redis).await?;
+            Ok(StatusCode::OK)
+        } else {
+            Ok(StatusCode::OK)
+        }
+    } else {
+        Err(ApiError::NotFound("user".to_string()))
+    }
+}
+
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_avatar, upload_avatar),
+    paths(get_avatar, upload_avatar, delete_avatar),
     components(schemas(ApiErrorResponse, UploadAvatar, UnauthotizedErrorResponse)),
     tags((name = "avatar", description = "Upload/Get Avatar for users")),
 )]

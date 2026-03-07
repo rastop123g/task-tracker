@@ -1,14 +1,23 @@
 use std::fmt;
 
 use crate::{
-    error::{unauthotized::UnauthotizedError, validation::{ValidationError, ValidationErrorNamed}},
-    protocol::error::{UnauthotizedErrorResponse, ValidationErrorResponse},
+    error::{
+        bad_request::BadRequestError, forbidden::ForbiddenError, unauthotized::UnauthotizedError,
+        validation::ValidationError,
+    },
+    protocol::error::{
+        BadRequestErrorResponse, ForbiddenErrorResponse, UnauthotizedErrorResponse,
+        ValidationErrorResponse,
+    },
 };
 use axum::{Json, http::StatusCode, response::IntoResponse};
+use bb8::RunError;
+use redis::RedisError;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use utoipa::{ToSchema, openapi::schema};
+use utoipa::ToSchema;
 
+pub mod bad_request;
+pub mod forbidden;
 pub mod unauthotized;
 pub mod validation;
 
@@ -16,8 +25,8 @@ pub mod validation;
 pub enum ApiError {
     NotFound(String), // model
     Unauthorized(UnauthotizedError),
-    Forbidden,
-    BadRequest(String), // reason
+    Forbidden(ForbiddenError),
+    BadRequest(BadRequestError), // reason
     InternalServerError,
     CustomHttp(StatusCode, String),
     Validation(Vec<ValidationError>),
@@ -39,12 +48,6 @@ impl From<sqlx::Error> for ApiError {
     }
 }
 
-impl From<validator::ValidationErrors> for ApiError {
-    fn from(e: validator::ValidationErrors) -> Self {
-        ApiError::BadRequest(e.to_string())
-    }
-}
-
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, reason) = match self {
@@ -56,8 +59,20 @@ impl IntoResponse for ApiError {
                 )
                     .into_response();
             }
-            ApiError::Forbidden => (StatusCode::FORBIDDEN, "forbidden".to_string()),
-            ApiError::BadRequest(reason) => (StatusCode::BAD_REQUEST, reason),
+            ApiError::Forbidden(reason) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(ForbiddenErrorResponse { reason }),
+                )
+                    .into_response();
+            }
+            ApiError::BadRequest(reason) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(BadRequestErrorResponse { reason }),
+                )
+                    .into_response();
+            }
             ApiError::InternalServerError => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "internal server error".to_string(),
@@ -66,8 +81,11 @@ impl IntoResponse for ApiError {
             ApiError::Validation(errors) => {
                 return (
                     StatusCode::BAD_REQUEST,
-                    Json(ValidationErrorResponse { errors: errors.into_iter().map(|e| e.into()).collect() }),
-                ).into_response();
+                    Json(ValidationErrorResponse {
+                        errors: errors.into_iter().map(|e| e.into()).collect(),
+                    }),
+                )
+                    .into_response();
             }
         };
         (status, Json(ApiErrorResponse { error: reason })).into_response()
@@ -79,4 +97,16 @@ impl IntoResponse for ApiError {
 pub struct ApiErrorResponse {
     /// Error reason
     pub error: String,
+}
+
+impl From<RunError<RedisError>> for ApiError {
+    fn from(_: RunError<RedisError>) -> Self {
+        ApiError::InternalServerError
+    }
+}
+
+impl From<RedisError> for ApiError {
+    fn from(_: RedisError) -> Self {
+        ApiError::InternalServerError
+    }
 }

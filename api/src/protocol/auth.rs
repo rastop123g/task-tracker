@@ -30,21 +30,23 @@ pub struct LoginRequest {
 #[schema(description = "Login response")]
 pub struct LoginResponse {
     /// User id (uuid)
-    #[ts(type = "string")]
     pub user_id: Uuid,
+    pub name: String,
     pub email: String,
+    pub avatar: Option<String>,
+    pub avatar_preview: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
     /// access token
     pub token: String,
     /// refresh token
     pub refresh_token: String,
     /// token expiration date
-    #[ts(type = "string")]
     pub token_exp: DateTime<Utc>,
     /// refresh token expiration date
-    #[ts(type = "string")]
     pub refresh_exp: DateTime<Utc>,
     /// server time for calculating time difference
-    #[ts(type = "string")]
     pub server_time: DateTime<Utc>,
 }
 
@@ -64,12 +66,9 @@ pub struct RefreshTokenResponse {
     /// refresh token
     pub refresh_token: String,
     /// token expiration date
-    #[ts(type = "string")]
     pub token_exp: DateTime<Utc>,
     /// refresh token expiration date
-    #[ts(type = "string")]
     pub refresh_exp: DateTime<Utc>,
     /// server time for calculating time difference
-    #[ts(type = "string")]
     pub server_time: DateTime<Utc>,
 }

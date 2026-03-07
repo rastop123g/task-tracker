@@ -1,6 +1,6 @@
-use std::time::Duration;
 use anyhow::Context;
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
+use std::time::Duration;
 
 pub mod user;
 

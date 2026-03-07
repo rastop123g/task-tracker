@@ -2,12 +2,11 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_nats::{
-    jetstream::{
-        self,
-        stream::{self},
-        Context,
-    },
     Client, ConnectOptions,
+    jetstream::{
+        self, Context,
+        stream::{self},
+    },
 };
 use tokio::time::sleep;
 
