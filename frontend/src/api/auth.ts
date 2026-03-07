@@ -15,7 +15,7 @@ export const auth = {
   },
 
   async login(payload: LoginRequest): Promise<LoginResponse> {
-    const { setSession } = useAuth()
+    const { setSession, setUserInfo } = useAuth()
     const data = await request<LoginResponse>({
       method: 'POST',
       path: '/api/v1/auth/login',
@@ -23,6 +23,7 @@ export const auth = {
       authenticated: false,
     })
     setSession(data)
+    setUserInfo(data.user_id, data.email)
     return data
   },
 

@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BlankLayout from '@/layouts/BlankLayout.vue'
+import SettingsLayout from '@/layouts/SettingsLayout.vue'
 import { useAuth } from '@/composables/useAuth'
 
 declare module 'vue-router' {
@@ -25,6 +26,18 @@ const routes: RouteRecordRaw[] = [
         path: '',
         component: () => import('@/views/Home.vue'),
         meta: { title: 'Home', requiresAuth: true },
+      },
+    ],
+  },
+  {
+    path: '/settings',
+    component: SettingsLayout,
+    children: [
+      {
+        name: 'settings-profile',
+        path: 'profile',
+        component: () => import('@/views/ProfileView.vue'),
+        meta: { title: 'Profile', requiresAuth: true },
       },
     ],
   },

@@ -55,11 +55,13 @@ function isRefreshTokenResponse(data: unknown): data is RefreshTokenResponse {
   }
 
   const payload = data as Partial<RefreshTokenResponse>
-  return typeof payload.token === 'string'
-    && typeof payload.refresh_token === 'string'
-    && typeof payload.token_exp === 'string'
-    && typeof payload.refresh_exp === 'string'
-    && typeof payload.server_time === 'string'
+  return (
+    typeof payload.token === 'string' &&
+    typeof payload.refresh_token === 'string' &&
+    typeof payload.token_exp === 'string' &&
+    typeof payload.refresh_exp === 'string' &&
+    typeof payload.server_time === 'string'
+  )
 }
 
 async function refreshSession(): Promise<void> {
