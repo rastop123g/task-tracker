@@ -31,7 +31,7 @@ const { trigger, isSaving, hasAction } = useSettingsActions()
           <BreadcrumbList>
             <BreadcrumbItem class="hidden md:block">
               <BreadcrumbLink as-child>
-                <RouterLink to="/settings/profile">Settings</RouterLink>
+                <RouterLink to="/settings/profile">Настройки</RouterLink>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator class="hidden md:block" />
@@ -55,7 +55,7 @@ const { trigger, isSaving, hasAction } = useSettingsActions()
         class="bg-background flex h-16 shrink-0 items-center justify-end border-t px-4"
       >
         <Button :disabled="isSaving" @click="trigger">
-          {{ isSaving ? 'Saving…' : 'Save' }}
+          {{ isSaving ? 'Сохранение…' : 'Сохранить' }}
         </Button>
       </footer>
     </SidebarInset>

@@ -4,7 +4,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import MainLayout from '@/layouts/MainLayout.vue'
 import BlankLayout from '@/layouts/BlankLayout.vue'
 import SettingsLayout from '@/layouts/SettingsLayout.vue'
-import { useAuth } from '@/composables/useAuth'
+import { session } from '@/app/session/session'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -25,7 +25,7 @@ const routes: RouteRecordRaw[] = [
         name: 'home',
         path: '',
         component: () => import('@/views/Home.vue'),
-        meta: { title: 'Home', requiresAuth: true },
+        meta: { title: 'Главная', requiresAuth: true },
       },
     ],
   },
@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
         name: 'settings-profile',
         path: 'profile',
         component: () => import('@/views/ProfileView.vue'),
-        meta: { title: 'Profile', requiresAuth: true },
+        meta: { title: 'Профиль', requiresAuth: true },
       },
     ],
   },
@@ -53,13 +53,13 @@ const routes: RouteRecordRaw[] = [
         name: 'login',
         path: 'login',
         component: () => import('@/views/Login.vue'),
-        meta: { title: 'Login', guestOnly: true },
+        meta: { title: 'Вход', guestOnly: true },
       },
       {
         name: 'register',
         path: 'register',
         component: () => import('@/views/Register.vue'),
-        meta: { title: 'Register', guestOnly: true },
+        meta: { title: 'Регистрация', guestOnly: true },
       },
     ],
   },
@@ -71,7 +71,7 @@ const routes: RouteRecordRaw[] = [
         name: 'welcome',
         path: '',
         component: () => import('@/views/Welcome.vue'),
-        meta: { title: 'Welcome', requiresAuth: true },
+        meta: { title: 'Добро пожаловать', requiresAuth: true },
       },
     ],
   },
@@ -83,11 +83,10 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const { isAuthenticated } = useAuth()
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
+  if (to.meta.requiresAuth && !session.isAuthenticated.value) {
     return { name: 'login' }
   }
-  if (to.meta.guestOnly && isAuthenticated.value) {
+  if (to.meta.guestOnly && session.isAuthenticated.value) {
     return { name: 'home' }
   }
 })

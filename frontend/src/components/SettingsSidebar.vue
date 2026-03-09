@@ -21,7 +21,7 @@ const props = defineProps<SidebarProps>()
 
 const route = useRoute()
 
-const workspaces = ['My Workspace']
+const workspaces = ['Мое рабочее пространство']
 </script>
 
 <template>
@@ -37,7 +37,7 @@ const workspaces = ['My Workspace']
               <SidebarMenuButton as-child>
                 <RouterLink to="/">
                   <ArrowLeft />
-                  <span>Back to app</span>
+                  <span>Вернуться в приложение</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -45,14 +45,14 @@ const workspaces = ['My Workspace']
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel>Settings</SidebarGroupLabel>
+        <SidebarGroupLabel>Настройки</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton as-child :is-active="route.path === '/settings/profile'">
                 <RouterLink to="/settings/profile">
                   <UserRound />
-                  <span>Profile</span>
+                  <span>Профиль</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

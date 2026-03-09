@@ -6,7 +6,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/compone
 
 const props = defineProps<SidebarProps>()
 
-const workspaces = ['My Workspace']
+const workspaces = ['Мое рабочее пространство']
 </script>
 
 <template>

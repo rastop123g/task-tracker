@@ -11,12 +11,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@protocol/*": [
-        "../ts_protocol/bindings/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "strict": true
   }

@@ -1,57 +1,31 @@
-import { ref, computed } from 'vue'
-import type { Ref } from 'vue'
+import { computed } from 'vue'
 import { api } from '@/api'
-import type { UserProfile } from '@/api/user'
-import { useAuth } from './useAuth'
-
-const { userId, accessToken } = useAuth()
-
-const profile: Ref<UserProfile | null> = ref(null)
-const isLoading: Ref<boolean> = ref(false)
-const error: Ref<string | null> = ref(null)
-
-const avatarUrl = computed(() => (userId.value ? `/api/v1/avatar/${userId.value}` : null))
+import { currentUserStore } from '@/app/session/current-user-store'
 
 async function fetchProfile(): Promise<void> {
-  isLoading.value = true
-  error.value = null
   try {
-    profile.value = await api.user.getMe()
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Failed to load profile'
-  } finally {
-    isLoading.value = false
-  }
+    await currentUserStore.fetchMe()
+  } catch {}
 }
 
 async function updateName(name: string): Promise<void> {
-  profile.value = await api.user.patchMe(name)
+  const updated = await api.user.updateMe({ name })
+  currentUserStore.setUser(updated)
 }
 
 async function uploadAvatar(file: File): Promise<void> {
-  if (!userId.value) {
-    throw new Error('Cannot upload avatar: user ID is not available')
-  }
-  const formData = new FormData()
-  formData.append('avatar', file)
-  const response = await fetch(`/api/v1/avatar/${userId.value}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken.value}`,
-    },
-    body: formData,
-  })
-  if (!response.ok) {
-    throw new Error(`Avatar upload failed: ${response.status} ${response.statusText}`)
-  }
+  await api.avatar.uploadMyAvatar(file)
+  await currentUserStore.fetchMe({ force: true })
 }
 
 export function useProfile() {
   return {
-    profile,
-    isLoading,
-    error,
-    avatarUrl,
+    profile: currentUserStore.user,
+    isLoading: computed(() => currentUserStore.status.value === 'loading'),
+    error: computed(() => currentUserStore.error.value?.message ?? null),
+    avatarUrl: computed(() =>
+      currentUserStore.user.value ? `/api/v1/avatar/${currentUserStore.user.value.id}` : null,
+    ),
     fetchProfile,
     updateName,
     uploadAvatar,

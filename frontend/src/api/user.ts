@@ -1,31 +1,14 @@
-import { useAuth } from '@/composables/useAuth'
-
-const NAME_KEY = 'tt_user_name'
-
-export interface UserProfile {
-  id: string
-  name: string
-  email: string
-}
+import type { UpdateUserRequest, UserResponse } from '@/api/generated/schema'
+import { get, put } from './client'
 
 export const user = {
-  async getMe(): Promise<UserProfile> {
-    const { userId, email } = useAuth()
-    const name = localStorage.getItem(NAME_KEY) ?? ''
-    return {
-      id: userId.value ?? '',
-      name,
-      email: email.value ?? '',
-    }
+  async getMe(): Promise<UserResponse> {
+    return get('/api/v1/user/me')
   },
 
-  async patchMe(name: string): Promise<UserProfile> {
-    const { userId, email } = useAuth()
-    localStorage.setItem(NAME_KEY, name)
-    return {
-      id: userId.value ?? '',
-      name,
-      email: email.value ?? '',
-    }
+  async updateMe(payload: UpdateUserRequest): Promise<UserResponse> {
+    return put('/api/v1/user/me', {
+      json: payload,
+    })
   },
 }

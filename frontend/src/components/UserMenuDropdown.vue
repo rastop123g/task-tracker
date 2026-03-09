@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { ChevronsUpDown, Settings, LogOut } from 'lucide-vue-next'
 import {
@@ -10,10 +10,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import { currentUserStore } from '@/app/session/current-user-store'
 import { useProfile } from '@/composables/useProfile'
 import { useAuth } from '@/composables/useAuth'
 
-const { profile, avatarUrl, fetchProfile } = useProfile()
+const { profile, avatarUrl } = useProfile()
 const { clearTokens } = useAuth()
 const router = useRouter()
 
@@ -25,10 +26,9 @@ const avatarSrc = computed(() => (avatarUrl.value ? `${avatarUrl.value}?t=0` : n
 
 function onSignOut() {
   clearTokens()
+  currentUserStore.clear()
   router.push({ name: 'login' })
 }
-
-onMounted(fetchProfile)
 </script>
 
 <template>
@@ -45,7 +45,7 @@ onMounted(fetchProfile)
               <img
                 v-if="avatarSrc && !showInitials"
                 :src="avatarSrc"
-                alt="Avatar"
+                alt="Аватар"
                 class="size-8 rounded-full object-cover"
                 @error="showInitials = true"
               />
@@ -77,7 +77,7 @@ onMounted(fetchProfile)
           <DropdownMenuItem as-child>
             <RouterLink to="/settings/profile" class="flex items-center gap-2 cursor-pointer">
               <Settings class="size-4" />
-              <span>Settings</span>
+              <span>Настройки</span>
             </RouterLink>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -86,7 +86,7 @@ onMounted(fetchProfile)
             @select="onSignOut"
           >
             <LogOut class="size-4" />
-            <span>Sign out</span>
+            <span>Выйти</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
