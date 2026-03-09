@@ -1,35 +1,27 @@
-import type { RegisterRequest } from '@protocol/RegisterRequest'
-import type { LoginRequest } from '@protocol/LoginRequest'
-import type { LoginResponse } from '@protocol/LoginResponse'
-import { useAuth } from '@/composables/useAuth'
-import { request } from './client'
+import type { RegisterRequest, LoginRequest, LoginResponse } from '@/api/generated/schema'
+import { session } from '@/app/session/session'
+import { get, post } from './client'
 
 export const auth = {
   async register(payload: RegisterRequest): Promise<void> {
-    return request<void>({
-      method: 'POST',
-      path: '/api/v1/auth/register',
-      body: payload,
-      authenticated: false,
+    await post('/api/v1/auth/register', {
+      json: payload,
+      auth: false,
     })
   },
 
   async login(payload: LoginRequest): Promise<LoginResponse> {
-    const { setSession } = useAuth()
-    const data = await request<LoginResponse>({
-      method: 'POST',
-      path: '/api/v1/auth/login',
-      body: payload,
-      authenticated: false,
+    const data = await post('/api/v1/auth/login', {
+      json: payload,
+      auth: false,
     })
-    setSession(data)
+    session.setSession(data)
     return data
   },
 
-  async verify(): Promise<void> {
-    return request<void>({
-      method: 'GET',
-      path: '/api/v1/auth/verify',
+  async verify(token: string) {
+    return get('/api/v1/auth/verify', {
+      query: { token },
     })
   },
 }

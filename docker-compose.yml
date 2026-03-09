@@ -13,7 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   nats:
-    image: nats:latest
+    image: nats:2.12.4
     container_name: track-nats
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
       - redisdata:/data
 
   minio:
-    image: quay.io/minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: track-s3
     restart: unless-stopped
     ports:
@@ -44,7 +44,21 @@ services:
       - ./storage:/data
     command: server /data --console-address ":9001"
 
+  minio-init:
+    image: curlimages/curl:8.12.1
+    container_name: track-s3-init
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      BUCKET: tasktrackerfiles
+      ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+    volumes:
+      - ./scripts/create_local_bucket.sh:/create_local_bucket_for_docker.sh:ro
+    entrypoint: ["/bin/sh", "/create_local_bucket_for_docker.sh"]
+
 volumes:
   pgdata:
   redisdata:
-  miniodata:
