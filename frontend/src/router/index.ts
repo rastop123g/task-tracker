@@ -5,12 +5,14 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import BlankLayout from '@/layouts/BlankLayout.vue'
 import SettingsLayout from '@/layouts/SettingsLayout.vue'
 import { session } from '@/app/session/session'
+import { areasStore } from '@/app/areas/areas-store'
 
 declare module 'vue-router' {
   interface RouteMeta {
     title?: string
     requiresAuth?: boolean
     guestOnly?: boolean
+    requiresArea?: boolean
     transition?: string
     keepAlive?: boolean
   }
@@ -75,6 +77,12 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    name: 'area-create',
+    path: '/area/create',
+    component: () => import('@/views/AreaCreate.vue'),
+    meta: { title: 'Создать область', requiresAuth: true },
+  },
 ]
 
 const router = createRouter({
@@ -87,6 +95,12 @@ router.beforeEach((to) => {
     return { name: 'login' }
   }
   if (to.meta.guestOnly && session.isAuthenticated.value) {
+    return { name: 'home' }
+  }
+  if (to.meta.requiresArea && areasStore.isEmpty.value) {
+    return { name: 'welcome' }
+  }
+  if (to.name === 'welcome' && !areasStore.isEmpty.value) {
     return { name: 'home' }
   }
 })

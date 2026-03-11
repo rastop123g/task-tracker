@@ -31,19 +31,19 @@ type JsonBodyFor<Operation> = PropertyValue<BodyContentFor<Operation>, 'applicat
 type MultipartBodyFor<Operation> = PropertyValue<BodyContentFor<Operation>, 'multipart/form-data'>
 
 type WithQuery<Operation> = [QueryFor<Operation>] extends [never]
-  ? {}
+  ? object
   : { query: QueryFor<Operation> }
 
 type WithPathParams<Operation> = [PathParamsFor<Operation>] extends [never]
-  ? {}
+  ? object
   : { params: PathParamsFor<Operation> }
 
 type WithJsonBody<Operation> = [JsonBodyFor<Operation>] extends [never]
-  ? {}
+  ? object
   : { json: JsonBodyFor<Operation> }
 
 type WithFormData<Operation> = [MultipartBodyFor<Operation>] extends [never]
-  ? {}
+  ? object
   : { formData: FormData }
 
 type SuccessBody<Response> = Response extends { content: infer Content }
@@ -75,10 +75,7 @@ type RequestBase<M extends HttpMethod, P extends PathForMethod<M>> = {
   signal?: AbortSignal
 }
 
-export type RequestOptions<M extends HttpMethod, P extends PathForMethod<M>> = {} & RequestBase<
-  M,
-  P
-> &
+export type RequestOptions<M extends HttpMethod, P extends PathForMethod<M>> = RequestBase<M, P> &
   WithPathParams<OperationFor<M, P>> &
   WithQuery<OperationFor<M, P>> &
   WithJsonBody<OperationFor<M, P>> &
