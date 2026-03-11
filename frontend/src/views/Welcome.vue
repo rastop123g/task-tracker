@@ -11,12 +11,22 @@ type WelcomeInvitation = {
 }
 
 const router = useRouter()
-const invitations = ref<WelcomeInvitation[]>([])
-
+const invitations = ref<WelcomeInvitation[]>([
+{
+  id: '1',
+  workspaceName: 'Рабочая область 1',
+  inviterName: 'Иван Иванов',
+},
+{
+  id: '2',
+  workspaceName: 'Рабочая область 2',
+  inviterName: 'Петр Петров',
+},
+])
 const hasInvitations = computed(() => invitations.value.length > 0)
 
 async function handleCreateArea(): Promise<void> {
-  await router.push({ name: 'home' })
+  await router.push({ name: 'area-create' })
 }
 
 async function handleInvitationOpen(): Promise<void> {

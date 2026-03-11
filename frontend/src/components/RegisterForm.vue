@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import type { HTMLAttributes } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CircleAlert, GalleryVerticalEnd, LoaderCircle } from 'lucide-vue-next'
+import { CircleAlert, LoaderCircle } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import {
   getFieldErrors,
@@ -94,19 +94,17 @@ async function handleSubmit(): Promise<void> {
   <div
     :class="
       cn(
-        'flex w-full max-w-sm flex-col gap-3 rounded-xl bg-card px-10 pb-10 pt-5 shadow-sm',
+        'flex w-full max-w-sm flex-col rounded-xl bg-card px-6 py-6 shadow-sm sm:px-8 sm:py-7',
         props.class,
       )
     "
   >
-    <div class="min-h-12">
-      <Transition name="form-alert" appear>
-        <Alert v-if="formError" variant="destructive">
-          <CircleAlert />
-          <AlertDescription>{{ formError }}</AlertDescription>
-        </Alert>
-      </Transition>
-    </div>
+    <Transition name="form-alert" appear>
+      <Alert v-if="formError" variant="destructive" class="mb-4">
+        <CircleAlert />
+        <AlertDescription>{{ formError }}</AlertDescription>
+      </Alert>
+    </Transition>
 
     <div v-if="registrationSent" class="flex flex-col items-center gap-4">
       <p class="text-lg font-semibold">Аккаунт создан</p>
@@ -120,88 +118,96 @@ async function handleSubmit(): Promise<void> {
     </div>
 
     <form v-else novalidate @submit.prevent="handleSubmit">
-      <FieldGroup class="gap-5">
-        <div class="flex flex-col gap-2">
-          <div class="flex flex-col gap-2 font-medium">
-            <div class="flex size-8 rounded-md">
-              <GalleryVerticalEnd class="size-6" />
-            </div>
-            <span class="sr-only">Трекер задач</span>
-          </div>
-          <h1 class="text-xl font-bold">Создание аккаунта</h1>
-          <FieldDescription>
-            Уже есть аккаунт?
-            <RouterLink to="/auth/login" class="text-primary underline-offset-4 hover:underline">
-              Войти
-            </RouterLink>
+      <FieldGroup class="gap-4">
+        <div class="flex flex-col gap-2.5 pb-1">
+          <h1 class="text-xl font-bold sm:text-2xl">Создание аккаунта</h1>
+          <FieldDescription class="text-sm">
+            Введите данные, чтобы создать аккаунт
           </FieldDescription>
         </div>
-        <Field class="gap-2">
-          <FieldLabel for="name">Имя</FieldLabel>
-          <Input
-            id="name"
-            v-model="name"
-            type="text"
-            placeholder="Иван Иванов"
-            required
-            :aria-invalid="Boolean(fieldErrors.name)"
-          />
-          <div class="min-h-5">
-            <FieldError :errors="fieldErrors.name ? [fieldErrors.name] : []" />
-          </div>
-        </Field>
-        <Field class="gap-2">
-          <FieldLabel for="email">Электронная почта</FieldLabel>
-          <Input
-            id="email"
-            v-model="email"
-            type="email"
-            placeholder="m@example.com"
-            required
-            :aria-invalid="Boolean(fieldErrors.email)"
-          />
-          <div class="min-h-5">
-            <FieldError :errors="fieldErrors.email ? [fieldErrors.email] : []" />
-          </div>
-        </Field>
-        <Field class="gap-2">
-          <FieldLabel for="password">Пароль</FieldLabel>
-          <Input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            required
-            :aria-invalid="Boolean(fieldErrors.password)"
-          />
-          <div class="min-h-5">
-            <FieldError :errors="fieldErrors.password ? [fieldErrors.password] : []" />
-          </div>
-        </Field>
-        <Field class="gap-2">
-          <FieldLabel for="confirm-password">Повторите пароль</FieldLabel>
-          <Input
-            id="confirm-password"
-            v-model="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            required
-            :aria-invalid="Boolean(fieldErrors.confirmPassword)"
-          />
-          <div class="min-h-5">
-            <FieldError
-              :errors="fieldErrors.confirmPassword ? [fieldErrors.confirmPassword] : []"
+        <div class="flex flex-col gap-3">
+          <Field class="gap-2">
+            <FieldLabel for="name" class="text-sm font-medium">Имя</FieldLabel>
+            <Input
+              id="name"
+              v-model="name"
+              type="text"
+              placeholder="Иван Иванов"
+              required
+              :aria-invalid="Boolean(fieldErrors.name)"
+              class="h-11 rounded-lg px-4"
             />
-          </div>
-        </Field>
+            <div class="min-h-4">
+              <FieldError :errors="fieldErrors.name ? [fieldErrors.name] : []" />
+            </div>
+          </Field>
+          <Field class="gap-2">
+            <FieldLabel for="email" class="text-sm font-medium">Электронная почта</FieldLabel>
+            <Input
+              id="email"
+              v-model="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+              :aria-invalid="Boolean(fieldErrors.email)"
+              class="h-11 rounded-lg px-4"
+            />
+            <div class="min-h-4">
+              <FieldError :errors="fieldErrors.email ? [fieldErrors.email] : []" />
+            </div>
+          </Field>
+          <Field class="gap-2">
+            <FieldLabel for="password" class="text-sm font-medium">Пароль</FieldLabel>
+            <Input
+              id="password"
+              v-model="password"
+              type="password"
+              placeholder="••••••••"
+              required
+              :aria-invalid="Boolean(fieldErrors.password)"
+              class="h-11 rounded-lg px-4"
+            />
+            <div class="min-h-4">
+              <FieldError :errors="fieldErrors.password ? [fieldErrors.password] : []" />
+            </div>
+          </Field>
+          <Field class="gap-2">
+            <FieldLabel for="confirm-password" class="text-sm font-medium">
+              Повторите пароль
+            </FieldLabel>
+            <Input
+              id="confirm-password"
+              v-model="confirmPassword"
+              type="password"
+              placeholder="••••••••"
+              required
+              :aria-invalid="Boolean(fieldErrors.confirmPassword)"
+              class="h-11 rounded-lg px-4"
+            />
+            <div class="min-h-4">
+              <FieldError
+                :errors="fieldErrors.confirmPassword ? [fieldErrors.confirmPassword] : []"
+              />
+            </div>
+          </Field>
+        </div>
         <Field>
           <div class="flex justify-center">
-            <Button :disabled="isLoading" type="submit" class="w-full">
+            <Button :disabled="isLoading" type="submit" class="h-11 w-full rounded-lg text-base">
               <LoaderCircle v-if="isLoading" class="size-4 animate-spin" />
-              <span> Зарегистрироваться </span>
+              <span>Зарегистрироваться</span>
             </Button>
           </div>
         </Field>
+        <div class="text-muted-foreground pt-1 text-center text-sm">
+          Уже есть аккаунт?
+          <RouterLink
+            to="/auth/login"
+            class="text-foreground font-medium underline underline-offset-4 hover:text-primary"
+          >
+            Войти
+          </RouterLink>
+        </div>
       </FieldGroup>
     </form>
   </div>

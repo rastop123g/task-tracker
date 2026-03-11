@@ -1,3 +1,5 @@
+use chrono::Utc;
+
 use crate::{
     db,
     entity::user::UserEntity,
@@ -79,7 +81,7 @@ impl From<LoginnedUserEntity> for LoginResponse {
             refresh_token: user.tokens.refresh_token,
             token_exp: user.tokens.token_exp,
             refresh_exp: user.tokens.refresh_exp,
-            server_time: user.user.created_at,
+            server_time: Utc::now(),
         }
     }
 }
