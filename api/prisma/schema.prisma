@@ -40,7 +40,7 @@ model app_workspace {
   id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                 String
   avatar               String?
-  admin                app_user                    @relation(fields: [admin_id], references: [id])
+  admin                app_user                @relation(fields: [admin_id], references: [id])
   admin_id             String                  @db.Uuid
   created_at           DateTime                @default(now()) @db.Timestamptz(6)
   updated_at           DateTime                @default(now()) @db.Timestamptz(6)
@@ -52,15 +52,16 @@ model app_workspace {
   userWorkspaceFilters user_workspace_filter[]
   taskPresets          task_preset[]
   workspaceReactions   workspace_reaction[]
+  workspaceTags        workspace_tag[]
 }
 
 // Сохраненный фильтр в workspace
 model user_workspace_filter {
-  user         app_user      @relation(fields: [user_id], references: [id])
-  user_id      String    @db.Uuid
-  workspace    app_workspace @relation(fields: [workspace_id], references: [id])
-  workspace_id String    @db.Uuid
-  statuses     Json @default("[]")
+  user         app_user             @relation(fields: [user_id], references: [id])
+  user_id      String               @db.Uuid
+  workspace    app_workspace        @relation(fields: [workspace_id], references: [id])
+  workspace_id String               @db.Uuid
+  statuses     Json                 @default("[]")
   users        user_filter_executor @default(all)
 
   @@unique([user_id, workspace_id])
@@ -69,12 +70,12 @@ model user_workspace_filter {
 // Участник workspace
 model workspace_member {
   user         app_user      @relation(fields: [user_id], references: [id])
-  user_id      String    @db.Uuid
+  user_id      String        @db.Uuid
   workspace    app_workspace @relation(fields: [workspace_id], references: [id])
-  workspace_id String    @db.Uuid
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
-  deleted_at   DateTime? @db.Timestamptz(6)
+  workspace_id String        @db.Uuid
+  created_at   DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime?     @db.Timestamptz(6)
 
   @@unique([user_id, workspace_id])
 }
@@ -82,12 +83,12 @@ model workspace_member {
 // Приглашение в workspace
 model workspace_invitation {
   user         app_user      @relation(fields: [user_id], references: [id])
-  user_id      String    @db.Uuid
+  user_id      String        @db.Uuid
   workspace    app_workspace @relation(fields: [workspace_id], references: [id])
-  workspace_id String    @db.Uuid
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
-  deleted_at   DateTime? @db.Timestamptz(6)
+  workspace_id String        @db.Uuid
+  created_at   DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime?     @db.Timestamptz(6)
 
   @@unique([user_id, workspace_id])
 }
@@ -97,11 +98,12 @@ model task_status {
   id                     String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                   String
   category               status_category
-  workspace              app_workspace             @relation(fields: [workspace_id], references: [id])
+  workspace              app_workspace         @relation(fields: [workspace_id], references: [id])
   workspace_id           String                @db.Uuid
   created_at             DateTime              @default(now()) @db.Timestamptz(6)
   updated_at             DateTime              @default(now()) @db.Timestamptz(6)
   deleted_at             DateTime?             @db.Timestamptz(6)
+  color                  color                 @default(gray)
   fromchangeStatusEvents change_status_event[] @relation("from")
   tochangeStatusEvents   change_status_event[] @relation("to")
   intervals              status_interval[]
@@ -115,13 +117,13 @@ model task {
   key                 Int                    @default(autoincrement())
   name                String?
   description         String
-  workspace           app_workspace              @relation(fields: [workspace_id], references: [id])
+  workspace           app_workspace          @relation(fields: [workspace_id], references: [id])
   workspace_id        String                 @db.Uuid
-  author              app_user                   @relation("author", fields: [author_id], references: [id])
+  author              app_user               @relation("author", fields: [author_id], references: [id])
   author_id           String                 @db.Uuid
-  executor            app_user?                  @relation("current_executor", fields: [executor_id], references: [id])
+  executor            app_user?              @relation("current_executor", fields: [executor_id], references: [id])
   executor_id         String?                @db.Uuid
-  status              task_status                 @relation(fields: [status_id], references: [id])
+  status              task_status            @relation(fields: [status_id], references: [id])
   status_id           String                 @db.Uuid
   created_at          DateTime               @default(now()) @db.Timestamptz(6)
   changeStatusEvents  change_status_event[]
@@ -129,17 +131,18 @@ model task {
   messages            message[]
   readMarks           read_mark[]
   taskStatusReactions task_status_reaction[]
+  taskTags            task_tag[]
 }
 
 // Сообщения в задаче
 model message {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  task       task        @relation(fields: [task_id], references: [id])
-  task_id    String      @db.Uuid
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task       task           @relation(fields: [task_id], references: [id])
+  task_id    String         @db.Uuid
   content    String
-  created_at DateTime    @default(now()) @db.Timestamptz(6)
-  author     app_user        @relation(fields: [author_id], references: [id])
-  author_id  String      @db.Uuid
+  created_at DateTime       @default(now()) @db.Timestamptz(6)
+  author     app_user       @relation(fields: [author_id], references: [id])
+  author_id  String         @db.Uuid
   files      message_file[]
   readMarks  read_mark[]
 }
@@ -149,7 +152,7 @@ model message {
 model read_mark {
   task       task     @relation(fields: [task_id], references: [id])
   task_id    String   @db.Uuid
-  user       app_user     @relation(fields: [user_id], references: [id])
+  user       app_user @relation(fields: [user_id], references: [id])
   user_id    String   @db.Uuid
   at         DateTime @default(now()) @db.Timestamptz(6)
   message    message  @relation(fields: [message_id], references: [id])
@@ -166,98 +169,120 @@ model message_file {
   storrage_key String
   name         String
   size         Int
-  uploader     app_user     @relation(fields: [uploader_id], references: [id])
+  uploader     app_user @relation(fields: [uploader_id], references: [id])
   uploader_id  String   @db.Uuid
   created_at   DateTime @default(now()) @db.Timestamptz(6)
 }
 
 // История изменения статуса задачи
 model change_status_event {
-  id      Int      @id @default(autoincrement())
-  task    task     @relation(fields: [task_id], references: [id])
-  task_id String   @db.Uuid
-  time    DateTime @default(now()) @db.Timestamptz(6)
-  who     app_user     @relation(fields: [who_id], references: [id])
-  who_id  String   @db.Uuid
-  from    task_status   @relation("from", fields: [from_id], references: [id])
-  from_id String   @db.Uuid
-  to      task_status   @relation("to", fields: [to_id], references: [id])
-  to_id   String   @db.Uuid
+  id      Int         @id @default(autoincrement())
+  task    task        @relation(fields: [task_id], references: [id])
+  task_id String      @db.Uuid
+  time    DateTime    @default(now()) @db.Timestamptz(6)
+  who     app_user    @relation(fields: [who_id], references: [id])
+  who_id  String      @db.Uuid
+  from    task_status @relation("from", fields: [from_id], references: [id])
+  from_id String      @db.Uuid
+  to      task_status @relation("to", fields: [to_id], references: [id])
+  to_id   String      @db.Uuid
 }
 
 // Интервалы нахождения задачи в определенном статусе
 // для аналитики, при расширении перетащить в clickhouse
 model status_interval {
-  id         Int      @id @default(autoincrement())
-  start_time DateTime @default(now()) @db.Timestamptz(6)
-  end_time   DateTime @default(now()) @db.Timestamptz(6)
-  status     task_status   @relation(fields: [status_id], references: [id])
-  status_id  String   @db.Uuid
-  user       app_user     @relation(fields: [user_id], references: [id])
-  user_id    String   @db.Uuid
-  task       task     @relation(fields: [task_id], references: [id])
-  task_id    String   @db.Uuid
+  id         Int         @id @default(autoincrement())
+  start_time DateTime    @default(now()) @db.Timestamptz(6)
+  end_time   DateTime    @default(now()) @db.Timestamptz(6)
+  status     task_status @relation(fields: [status_id], references: [id])
+  status_id  String      @db.Uuid
+  user       app_user    @relation(fields: [user_id], references: [id])
+  user_id    String      @db.Uuid
+  task       task        @relation(fields: [task_id], references: [id])
+  task_id    String      @db.Uuid
 }
 
 // Пресет набора статусов, для быстрого создания статусов в новом workspace
 model statuses_preset {
   id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
-  user          app_user            @relation(fields: [user_id], references: [id])
+  user          app_user        @relation(fields: [user_id], references: [id])
   user_id       String          @db.Uuid
   statusPresets status_preset[]
 }
 
 // Статус из пресета
 model status_preset {
-  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   preset     statuses_preset @relation(fields: [preset_id], references: [id])
-  preset_id  String           @db.Uuid
+  preset_id  String          @db.Uuid
   category   status_category
+  color      color           @default(gray)
   name       String
-  created_at DateTime         @default(now()) @db.Timestamptz(6)
-  updated_at DateTime         @default(now()) @db.Timestamptz(6)
-  deleted_at DateTime?        @db.Timestamptz(6)
+  created_at DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at DateTime        @default(now()) @db.Timestamptz(6)
+  deleted_at DateTime?       @db.Timestamptz(6)
 }
 
 // Пресеты создания задач, для быстрого создания таски (ошибка для исполнителя/своя микро задача)
 // При нажатии на иконку + открывается поповер с пресетами
 model task_preset {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   workspace    app_workspace @relation(fields: [workspace_id], references: [id])
-  workspace_id String    @db.Uuid
+  workspace_id String        @db.Uuid
   name         String // Имя пресета
   executor     app_user?     @relation("preset_executor", fields: [executor_id], references: [id])
-  executor_id  String?   @db.Uuid
-  status       task_status    @relation(fields: [status_id], references: [id])
-  status_id    String    @db.Uuid
-  created_at   DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
-  deleted_at   DateTime? @db.Timestamptz(6)
+  executor_id  String?       @db.Uuid
+  status       task_status   @relation(fields: [status_id], references: [id])
+  status_id    String        @db.Uuid
+  created_at   DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime?     @db.Timestamptz(6)
 }
 
 // Последний вход в workspace (чтобы рисовать алертинг)
 // В списке workspaces будут алерты если в workspace есть чтото новое
 model workspace_reaction {
   user         app_user      @relation(fields: [user_id], references: [id])
-  user_id      String    @db.Uuid
+  user_id      String        @db.Uuid
   workspace    app_workspace @relation(fields: [workspace_id], references: [id])
-  workspace_id String    @db.Uuid
-  at           DateTime  @default(now()) @db.Timestamptz(6)
+  workspace_id String        @db.Uuid
+  at           DateTime      @default(now()) @db.Timestamptz(6)
 
   @@unique([user_id, workspace_id])
 }
 
 // Последний видимый статус (чтобы подсветить новые статусы)
 // на странице со списком задач
-model task_status_reaction { 
-  user    app_user     @relation(fields: [user_id], references: [id])
+model task_status_reaction {
+  user    app_user @relation(fields: [user_id], references: [id])
   user_id String   @db.Uuid
   task    task     @relation(fields: [task_id], references: [id])
   task_id String   @db.Uuid
   at      DateTime @default(now()) @db.Timestamptz(6)
 
   @@unique([user_id, task_id])
+}
+
+model workspace_tag {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspace    app_workspace @relation(fields: [workspace_id], references: [id])
+  workspace_id String        @db.Uuid
+  name         String
+  color        color         @default(gray)
+  created_at   DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime      @default(now()) @db.Timestamptz(6)
+  deleted_at   DateTime?     @db.Timestamptz(6)
+  taskTags     task_tag[]
+}
+
+model task_tag {
+  task    task          @relation(fields: [task_id], references: [id])
+  task_id String        @db.Uuid
+  tag     workspace_tag @relation(fields: [tag_id], references: [id])
+  tag_id  String        @db.Uuid
+
+  @@unique([task_id, tag_id])
 }
 
 enum status_category {
@@ -274,4 +299,16 @@ enum status_category {
 enum user_filter_executor {
   all
   me
+}
+
+enum color {
+  red
+  green
+  blue
+  yellow
+  pink
+  purple
+  orange
+  brown
+  gray
 }

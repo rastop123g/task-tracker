@@ -5,10 +5,7 @@ use crate::{
         bad_request::BadRequestError, forbidden::ForbiddenError, unauthotized::UnauthotizedError,
         validation::ValidationError,
     },
-    protocol::error::{
-        BadRequestErrorResponse, ForbiddenErrorResponse, UnauthotizedErrorResponse,
-        ValidationErrorResponse,
-    },
+    protocol::error::{BadRequestErrorResponse, ForbiddenErrorResponse, UnauthotizedErrorResponse},
 };
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use bb8::RunError;
@@ -69,7 +66,7 @@ impl IntoResponse for ApiError {
             ApiError::BadRequest(reason) => {
                 return (
                     StatusCode::BAD_REQUEST,
-                    Json(BadRequestErrorResponse { reason }),
+                    Json(BadRequestErrorResponse::Other(reason)),
                 )
                     .into_response();
             }
@@ -81,9 +78,9 @@ impl IntoResponse for ApiError {
             ApiError::Validation(errors) => {
                 return (
                     StatusCode::BAD_REQUEST,
-                    Json(ValidationErrorResponse {
-                        errors: errors.into_iter().map(|e| e.into()).collect(),
-                    }),
+                    Json(BadRequestErrorResponse::Validation(
+                        errors.into_iter().map(|e| e.into()).collect(),
+                    )),
                 )
                     .into_response();
             }

@@ -13,4 +13,5 @@ pub mod redis;
 pub mod router;
 pub mod services;
 pub mod swagger;
+pub mod utils;
 pub mod validation;

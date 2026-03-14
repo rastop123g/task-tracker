@@ -5,8 +5,11 @@ use uuid::Uuid;
 use crate::{
     cache::RedisCache,
     config::Config,
-    db::{DbPool, user::{DBUpdateUser, DBUser}},
-    entity::user::UserEntity,
+    db::{
+        DbPool,
+        user::{DBUpdateUser, DBUser, DBUserListItem},
+    },
+    entity::user::{UserEntity, UserListItemEntity},
     error::{ApiError, ApiResult},
     redis::RedisClient,
 };
@@ -23,9 +26,20 @@ impl UserService {
         Self { db, redis, config }
     }
 
-    pub async fn get(&self, id: &Uuid) -> ApiResult<Option<UserEntity>> {
+    pub async fn get(&self, id: &Uuid) -> ApiResult<UserEntity> {
         let mut conn = self.db.acquire().await?;
-        UserEntity::get_by_id(id, &self.redis, &mut conn).await
+        let user = UserEntity::get_by_id(id, &self.redis, &mut conn).await?;
+        if let Some(user) = user {
+            if user.deleted_at.is_some() {
+                return Err(ApiError::NotFound("user".to_string()));
+            }
+            if user.confirmed == false {
+                return Err(ApiError::NotFound("user".to_string()));
+            }
+            Ok(user)
+        } else {
+            Err(ApiError::NotFound("user".to_string()))
+        }
     }
 
     pub async fn update(&self, id: &Uuid, name: String) -> ApiResult<UserEntity> {
@@ -58,6 +72,19 @@ impl UserService {
         } else {
             Err(ApiError::NotFound("user".to_string()))
         }
+    }
+
+    pub async fn users_search(
+        &self,
+        search: Option<String>,
+        limit: Option<i32>,
+        offset: Option<i32>,
+    ) -> ApiResult<Vec<UserListItemEntity>> {
+        let limit = limit.unwrap_or(50);
+        let offset = offset.unwrap_or(0);
+        let mut conn = self.db.acquire().await?;
+        let users = DBUserListItem::list(search, limit, offset, &mut conn).await?;
+        Ok(users.into_iter().map(Into::into).collect())
     }
 }
 

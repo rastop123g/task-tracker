@@ -34,7 +34,7 @@ impl Config {
                 "postgres://postgres:postgres@localhost:5432/task_tracker",
             )),
             log_level: std::env::var("APP_LOG").unwrap_or(String::from("debug")),
-            env_filter: std::env::var("APP_FILTER").unwrap_or(String::from("debug")),
+            env_filter: std::env::var("APP_FILTER").unwrap_or(String::from("debug,async_nats=warn,aws_smithy_runtime=warn,hyper_util=warn,aws_sdk_s3=warn,aws_smithy_http_client=warn")),
             nats_url: std::env::var("NATS_URL").unwrap_or(String::from("nats://localhost:4222")),
             redis_url: std::env::var("REDIS_URL").unwrap_or(String::from("redis://localhost:6379")),
             jwt_secret: std::env::var("JWT_SECRET").unwrap_or(String::from("secret")),

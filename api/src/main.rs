@@ -1,13 +1,18 @@
 use std::sync::Arc;
 
 use api::{
-    app_resources::AppResources, cli, config::Config, db::init_pool, router::app_router,
+    app_resources::AppResources,
+    cli,
+    config::Config,
+    db::{init_pool, run_migrations},
+    router::app_router,
     swagger::ApiDoc,
 };
 use aws_config::{BehaviorVersion, Region, SdkConfig};
 use aws_sdk_s3::config::{Credentials, SharedCredentialsProvider};
 use axum::Router;
 use clap::Parser;
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -42,6 +47,7 @@ async fn serve() -> anyhow::Result<()> {
         .init();
 
     let db = init_pool(&config.database_url).await?;
+    run_migrations(&db).await?;
     let nats = api::nats::init_nats_client(&config).await?;
     let redis = api::redis::create_redis_pool(&config.redis_url).await?;
     let config = Arc::new(config);
@@ -65,7 +71,12 @@ async fn serve() -> anyhow::Result<()> {
     let res = AppResources::new(db, nats, redis, config.clone(), s3);
 
     let router = Router::new()
-        .merge(app_router(res.clone()))
+        .merge(
+            app_router(res.clone()).layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(DefaultMakeSpan::default().include_headers(true)),
+            ),
+        )
         .with_state(res)
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()));
     let listener =

@@ -105,6 +105,7 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
+ "detrim",
  "dotenv",
  "dotenvy",
  "enum_stringify",
@@ -125,6 +126,7 @@ dependencies = [
  "time",
  "tokio",
  "tokio-stream",
+ "tower-http",
  "tracing",
  "tracing-subscriber",
  "ts-rs",
@@ -1322,6 +1324,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "detrim"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84d4ea3c56c223d461a47cd7218fe9aa8f95106c73c8a25170cdd2af44a7ff15"
+dependencies = [
+ "serde_core",
 ]
 
 [[package]]
@@ -4253,6 +4264,22 @@ dependencies = [
  "pin-project-lite",
  "sync_wrapper",
  "tokio",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+]
+
+[[package]]
+name = "tower-http"
+version = "0.6.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4e6559d53cc268e5031cd8429d05415bc4cb4aefc4aa5d6cc35fbf5b924a1f8"
+dependencies = [
+ "bitflags",
+ "bytes",
+ "http 1.4.0",
+ "http-body 1.0.1",
+ "pin-project-lite",
  "tower-layer",
  "tower-service",
  "tracing",

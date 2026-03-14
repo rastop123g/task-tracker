@@ -163,16 +163,3 @@ DROP TYPE public.status_category;
 
 -- DropEnum
 DROP TYPE public.user_filter_executor;
-
--- CreateTable
-CREATE TABLE public._sqlx_migrations (
-    version BIGINT NOT NULL,
-    description TEXT NOT NULL,
-    installed_on TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    success BOOLEAN NOT NULL,
-    checksum BYTEA NOT NULL,
-    execution_time BIGINT NOT NULL,
-
-    CONSTRAINT _sqlx_migrations_pkey PRIMARY KEY (version)
-);
-

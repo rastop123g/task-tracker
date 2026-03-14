@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use crate::error::ApiResult;
@@ -198,5 +199,109 @@ impl DBUser {
         .fetch_optional(db)
         .await?;
         Ok(user)
+    }
+}
+
+#[derive(sqlx::FromRow, Debug, Clone)]
+pub struct DBUserListItem {
+    pub id: Uuid,
+    pub name: String,
+    pub email: String,
+}
+
+impl DBUserListItem {
+    pub async fn list(
+        search: Option<String>,
+        limit: i32,
+        offset: i32,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Vec<DBUserListItem>> {
+        let mut qb = sqlx::QueryBuilder::new(
+            r#"
+            SELECT id, name, email
+            FROM app_user
+            WHERE deleted_at IS NULL AND confirmed = true
+        "#,
+        );
+        if let Some(search) = search {
+            qb.push(" AND (name ILIKE ");
+            qb.push_bind(format!("%{}%", search));
+            qb.push(" OR email ILIKE ");
+            qb.push_bind(format!("%{}%", search));
+            qb.push(")");
+        }
+        qb.push(" ORDER BY name ASC");
+        qb.push(" LIMIT ");
+        qb.push_bind(limit);
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+        let rows = qb
+            .build()
+            .fetch_all(db)
+            .await
+            .inspect_err(|e| tracing::error!("DB error: {:?}", e))?;
+        let users: Result<Vec<DBUserListItem>, sqlx::Error> =
+            rows.iter().map(FromRow::from_row).collect();
+        Ok(users.inspect_err(|e| tracing::error!("DB FromRow error: {:?}", e))?)
+    }
+
+    pub async fn list_for_invite(
+        search: Option<String>,
+        limit: i32,
+        offset: i32,
+        workspace_id: &Uuid,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Vec<DBUserListItem>> {
+        let mut qb = sqlx::QueryBuilder::new(
+            r#"
+            SELECT id, name, email
+            FROM app_user u
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM workspace_member m
+                WHERE m.workspace_id = "#,
+        );
+        qb.push_bind(workspace_id);
+        qb.push(
+            r#"
+                  AND m.user_id = u.id
+                  AND m.deleted_at IS NULL
+                LIMIT 1
+            )
+            AND NOT EXISTS (
+                SELECT 1
+                FROM workspace_invitation i
+                WHERE i.workspace_id = "#,
+        );
+        qb.push_bind(workspace_id);
+        qb.push(
+            r#"
+                  AND i.user_id = u.id
+                  AND i.deleted_at IS NULL
+                LIMIT 1
+            )
+            AND deleted_at IS NULL AND confirmed = true
+        "#,
+        );
+        if let Some(search) = search {
+            qb.push(" AND (name ILIKE ");
+            qb.push_bind(format!("%{}%", search));
+            qb.push(" OR email ILIKE ");
+            qb.push_bind(format!("%{}%", search));
+            qb.push(")");
+        }
+        qb.push(" ORDER BY name ASC");
+        qb.push(" LIMIT ");
+        qb.push_bind(limit);
+        qb.push(" OFFSET ");
+        qb.push_bind(offset);
+        let rows = qb
+            .build()
+            .fetch_all(db)
+            .await
+            .inspect_err(|e| tracing::error!("DB error: {:?}", e))?;
+        let users: Result<Vec<DBUserListItem>, sqlx::Error> =
+            rows.iter().map(FromRow::from_row).collect();
+        Ok(users.inspect_err(|e| tracing::error!("DB FromRow error: {:?}", e))?)
     }
 }
