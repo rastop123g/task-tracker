@@ -2,7 +2,7 @@ use enum_stringify::EnumStringify;
 use serde::Serialize;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Copy, ToSchema, EnumStringify, Serialize)]
+#[derive(Debug, Clone, Copy, ToSchema, EnumStringify, Serialize, ts_rs::TS)]
 pub enum UnauthotizedError {
     BadCredentials,
     EmailNotConfirmed,

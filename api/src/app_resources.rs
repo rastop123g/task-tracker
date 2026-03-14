@@ -10,6 +10,8 @@ pub struct AppResources {
 
     pub auth_service: crate::services::auth_service::AuthService,
     pub user_service: crate::services::user_service::UserService,
+    pub workspace_service: crate::services::workspace_service::WorkspaceService,
+    pub workspace_invite_service: crate::services::workspace_invite_service::WorkspaceInviteService,
 }
 
 impl AppResources {
@@ -32,6 +34,17 @@ impl AppResources {
                 redis.clone(),
                 config.clone(),
             ),
+            workspace_service: crate::services::workspace_service::WorkspaceService::new(
+                db.clone(),
+                redis.clone(),
+                config.clone(),
+            ),
+            workspace_invite_service:
+                crate::services::workspace_invite_service::WorkspaceInviteService::new(
+                    db.clone(),
+                    redis.clone(),
+                    config.clone(),
+                ),
             db,
             nats,
             redis,

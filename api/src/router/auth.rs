@@ -1,8 +1,11 @@
-use crate::protocol::{
-    auth::{
-        LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest,
+use crate::{
+    protocol::{
+        auth::{
+            LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest,
+        },
+        error::{UnauthotizedErrorResponse, ValidationErrorResponse},
     },
-    error::{UnauthotizedErrorResponse, ValidationErrorResponse},
+    utils::{AppTrim, FieldValidate},
 };
 use axum::{
     Json, Router,
@@ -34,8 +37,10 @@ pub fn auth_router() -> Router<AppResources> {
 /// Register new user
 pub async fn register(
     State(app): State<AppResources>,
-    Json(req): Json<RegisterRequest>,
+    Json(mut req): Json<RegisterRequest>,
 ) -> ApiResult<String> {
+    req.app_trim();
+    req.field_validate()?;
     app.auth_service.register(req.try_into()?).await?;
     Ok("ok".into())
 }

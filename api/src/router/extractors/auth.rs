@@ -11,14 +11,10 @@ use crate::{
     jwt,
 };
 
-pub struct UserAuth(pub UserEntity);
-pub struct AdminAuth(pub Uuid);
-
 #[derive(Debug, Clone)]
-pub struct Auth<T> {
-    pub user_id: Uuid,
-    _role: std::marker::PhantomData<T>,
-}
+pub struct UserAuth(pub UserEntity);
+#[derive(Debug, Clone)]
+pub struct AdminAuth(pub Uuid);
 
 impl<S> FromRequestParts<S> for UserAuth
 where
@@ -28,6 +24,11 @@ where
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        //check cached
+        let user_auth = parts.extensions.get::<UserAuth>();
+        if let Some(user_auth) = user_auth {
+            return Ok(user_auth.clone());
+        }
         let State(app): State<AppResources> = State::from_request_parts(parts, state)
             .await
             .map_err(|_| ApiError::InternalServerError)?;
@@ -43,14 +44,13 @@ where
             .ok_or(ApiError::Unauthorized(UnauthotizedError::MissingToken))?;
 
         let user_id = jwt::verify(token, &app.config)?;
-        let mut conn = app.db.acquire().await?;
-        let user = UserEntity::get_by_id(&user_id, &app.redis, &mut conn).await?;
-        if let Some(user) = user {
-            user.check_user()?;
-            Ok(UserAuth(user))
-        } else {
-            Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted))
-        }
+        let user = app.user_service.get(&user_id).await.map_err(|e| match e {
+            ApiError::NotFound(_) => ApiError::Unauthorized(UnauthotizedError::InvalidToken),
+            _ => ApiError::InternalServerError,
+        })?;
+        let user_auth = UserAuth(user);
+        parts.extensions.insert(user_auth.clone());
+        Ok(user_auth)
     }
 }
 

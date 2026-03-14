@@ -4,9 +4,9 @@ use uuid::Uuid;
 
 use crate::{
     cache::RedisCache,
-    db::user::DBUser,
+    db::user::{DBUser, DBUserListItem},
     error::{ApiError, ApiResult, bad_request::BadRequestError, unauthotized::UnauthotizedError},
-    protocol::user::UserResponse,
+    protocol::user::{UserListItemResponse, UserResponse},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,6 +87,33 @@ impl From<UserEntity> for UserResponse {
             created_at: user.created_at,
             updated_at: user.updated_at,
             deleted_at: user.deleted_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UserListItemEntity {
+    pub id: Uuid,
+    pub name: String,
+    pub email: String,
+}
+
+impl From<DBUserListItem> for UserListItemEntity {
+    fn from(user: DBUserListItem) -> Self {
+        Self {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+        }
+    }
+}
+
+impl From<UserListItemEntity> for UserListItemResponse {
+    fn from(user: UserListItemEntity) -> Self {
+        Self {
+            id: user.id,
+            name: user.name,
+            email: user.email,
         }
     }
 }

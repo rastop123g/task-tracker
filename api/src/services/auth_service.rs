@@ -37,7 +37,15 @@ impl AuthService {
         if users.iter().any(|u| u.confirmed == true) {
             return Err(ApiError::BadRequest(BadRequestError::EmailAlreadyUsed));
         }
-        let new_user = DBNewUser::from(data);
+        let sha = Sha256::digest(data.password.as_bytes());
+        let hex_password = hex::encode(sha);
+        let new_user = DBNewUser {
+            name: data.name,
+            email: data.email,
+            password: hex_password,
+            avatar: None,
+            avatar_preview: None,
+        };
         let created = new_user.create(&mut conn).await?;
         let confirmation_token_exp = Utc::now() + Duration::hours(3);
         let confirmation_token = jwt::create(&created.id, confirmation_token_exp, &self.config)?;

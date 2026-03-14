@@ -44,3 +44,5 @@ nanoid = "0.4.0"
 utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "uuid", "preserve_order"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 async-trait = "0.1.89"
+detrim = "0.1.6"
+tower-http = { version = "0.6.8", features = ["trace"] }

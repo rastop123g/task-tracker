@@ -2,7 +2,13 @@ use anyhow::Context;
 use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use std::time::Duration;
 
+pub mod common;
+pub mod status;
+pub mod tag;
 pub mod user;
+pub mod workspace;
+pub mod workspace_invite;
+pub mod workspace_member;
 
 pub type DbPool = Pool<Postgres>;
 

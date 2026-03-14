@@ -1,6 +1,6 @@
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, ToSchema, serde::Serialize)]
+#[derive(Debug, Clone, ToSchema, serde::Serialize, ts_rs::TS)]
 #[schema(description = "Validation Error")]
 pub struct ValidationErrorNamed {
     pub field: &'static str,
@@ -19,7 +19,7 @@ impl From<ValidationError> for ValidationErrorNamed {
     }
 }
 
-#[derive(Debug, Clone, ToSchema, serde::Serialize)]
+#[derive(Debug, Clone, ToSchema, serde::Serialize, ts_rs::TS)]
 #[serde(tag = "type", content = "value")]
 pub enum ValidationErrorKind {
     MinLength(usize),

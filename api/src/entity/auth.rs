@@ -3,9 +3,7 @@ use chrono::Utc;
 use crate::{
     db,
     entity::user::UserEntity,
-    error::{ApiError, validation::ValidationError},
     protocol::auth::{LoginResponse, RefreshTokenResponse},
-    validation::{AppValidateEmail, ValidateStringLength},
 };
 
 #[derive(Debug, Clone)]
@@ -33,19 +31,6 @@ pub struct LoginnedUserEntity {
 impl TryFrom<crate::protocol::auth::RegisterRequest> for RegisterUserEntity {
     type Error = crate::error::ApiError;
     fn try_from(req: crate::protocol::auth::RegisterRequest) -> Result<Self, Self::Error> {
-        let mut errs = Vec::new();
-        if let Err(e) = req.name.length(3, 128) {
-            errs.push(ValidationError("name", e));
-        }
-        if let Err(e) = req.email.validate_email() {
-            errs.push(ValidationError("email", e));
-        }
-        if let Err(e) = req.password.length(8, 128) {
-            errs.push(ValidationError("password", e));
-        }
-        if errs.len() > 0 {
-            return Err(ApiError::Validation(errs));
-        }
         Ok(Self {
             name: req.name,
             email: req.email,
@@ -72,8 +57,6 @@ impl From<LoginnedUserEntity> for LoginResponse {
             user_id: user.user.id,
             name: user.user.name,
             email: user.user.email,
-            avatar: user.user.avatar,
-            avatar_preview: user.user.avatar_preview,
             created_at: user.user.created_at,
             updated_at: user.user.updated_at,
             deleted_at: user.user.deleted_at,

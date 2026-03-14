@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{Path, Query, State},
 };
 use sha2::{Digest, Sha256};
 use utoipa::OpenApi;
@@ -11,7 +11,11 @@ use crate::{
     error::{ApiError, ApiResult, bad_request::BadRequestError},
     protocol::{
         error::UnauthotizedErrorResponse,
-        user::{ChangePasswordRequest, UpdateUserRequest, UserResponse},
+        user::{
+            ChangePasswordRequest, SearchUserRequest, UpdateUserRequest, UserListItemResponse,
+            UserResponse,
+        },
+        workspace_invite::UserInviteResponse,
     },
     router::extractors::auth::UserAuth,
 };
@@ -22,6 +26,8 @@ pub fn user_router() -> Router<AppResources> {
         .route("/me", axum::routing::put(update_user))
         .route("/me/password", axum::routing::put(change_password))
         .route("/{user_id}", axum::routing::get(get_user))
+        .route("/list", axum::routing::get(search_users))
+        .route("/invitations", axum::routing::get(get_invitations))
 }
 
 #[utoipa::path(
@@ -101,28 +107,68 @@ pub async fn get_user(
     Path(user_id): Path<Uuid>,
 ) -> ApiResult<Json<UserResponse>> {
     let user = app.user_service.get(&user_id).await?;
-    if let Some(user) = user {
-        if user.deleted_at.is_some() {
-            return Err(ApiError::NotFound("user".to_string()));
-        }
-        if user.confirmed == false {
-            return Err(ApiError::NotFound("user".to_string()));
-        }
-        Ok(Json(user.into()))
-    } else {
-        return Err(ApiError::NotFound("user".to_string()))
-    }
+    Ok(Json(user.into()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/list",
+    tag = "user",
+    params(
+        SearchUserRequest,
+    ),
+    responses(
+        (status = 200, description = "OK", body = Vec<UserListItemResponse>),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
+    ),
+)]
+/// Search users
+pub async fn search_users(
+    State(app): State<AppResources>,
+    UserAuth(_user): UserAuth,
+    Query(req): Query<SearchUserRequest>,
+) -> ApiResult<Json<Vec<UserListItemResponse>>> {
+    let users = app
+        .user_service
+        .users_search(req.search, req.limit, req.offset)
+        .await?;
+    Ok(Json(users.into_iter().map(Into::into).collect()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/invitations",
+    tag = "user",
+    responses(
+        (status = 200, description = "OK", body = Vec<UserInviteResponse>),
+        (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
+    ),
+)]
+/// Get invitations
+pub async fn get_invitations(
+    State(app): State<AppResources>,
+    UserAuth(user): UserAuth,
+) -> ApiResult<Json<Vec<UserInviteResponse>>> {
+    let invitations = app
+        .workspace_invite_service
+        .get_user_invitations(&user.id)
+        .await?;
+    Ok(Json(invitations.into_iter().map(Into::into).collect()))
 }
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
         get_me,
+        get_invitations,
         update_user,
         change_password,
         get_user,
+        search_users,
     ),
-    components(schemas(UserResponse, UpdateUserRequest, ChangePasswordRequest, UnauthotizedErrorResponse)),
+    components(schemas(UserResponse, UpdateUserRequest, ChangePasswordRequest, UnauthotizedErrorResponse,
+        UserListItemResponse
+    )),
     tags((name = "user", description = "User")),
 )]
 pub struct UserApiDoc;

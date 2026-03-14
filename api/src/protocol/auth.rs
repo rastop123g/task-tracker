@@ -3,6 +3,12 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::{
+    error::{ApiError, ApiResult, validation::ValidationError},
+    utils::{AppTrim, FieldValidate},
+    validation::{AppValidateEmail, ValidateStringLength},
+};
+
 #[derive(Serialize, Deserialize, ToSchema, ts_rs::TS)]
 #[ts(export)]
 #[schema(description = "Register a new user")]
@@ -13,6 +19,33 @@ pub struct RegisterRequest {
     pub email: String,
     /// User password
     pub password: String,
+}
+
+impl AppTrim for RegisterRequest {
+    fn app_trim(&mut self) {
+        self.name.app_trim();
+        self.email.app_trim();
+        self.password.app_trim();
+    }
+}
+
+impl FieldValidate for RegisterRequest {
+    fn field_validate(&self) -> ApiResult<()> {
+        let mut errs = Vec::new();
+        if let Err(e) = self.name.length(3, 128) {
+            errs.push(ValidationError("RegisterRequest.name", e));
+        }
+        if let Err(e) = self.email.validate_email() {
+            errs.push(ValidationError("RegisterRequest.email", e));
+        }
+        if let Err(e) = self.password.length(8, 128) {
+            errs.push(ValidationError("RegisterRequest.password", e));
+        }
+        if errs.len() > 0 {
+            return Err(ApiError::Validation(errs));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema, ts_rs::TS)]
@@ -33,8 +66,6 @@ pub struct LoginResponse {
     pub user_id: Uuid,
     pub name: String,
     pub email: String,
-    pub avatar: Option<String>,
-    pub avatar_preview: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
