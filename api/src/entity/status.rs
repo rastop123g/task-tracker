@@ -1,9 +1,9 @@
 use uuid::Uuid;
 
 use crate::{
-    db::status::{DBNewWorkspaceStatus, DBStatus},
+    db::status::{DBNewWorkspaceStatus, DBUpdateWorkspaceStatus, DBWorkspaceStatus},
     entity::common::{ColorEntity, StatusCategoryEntity},
-    protocol::status::{CreateStatusRequest, StatusResponse},
+    protocol::status::{CreateStatusRequest, StatusResponse, UpdateStatusRequest},
 };
 
 #[derive(Debug, Clone)]
@@ -11,6 +11,13 @@ pub struct CreateStatusEntity {
     pub name: String,
     pub category: StatusCategoryEntity,
     pub color: ColorEntity,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateStatusEntity {
+    pub name: Option<String>,
+    pub category: Option<StatusCategoryEntity>,
+    pub color: Option<ColorEntity>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,14 +32,13 @@ pub struct StatusEntity {
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl TryFrom<CreateStatusRequest> for CreateStatusEntity {
-    type Error = crate::error::ApiError;
-    fn try_from(req: CreateStatusRequest) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: req.name,
+impl From<CreateStatusRequest> for CreateStatusEntity {
+    fn from(req: CreateStatusRequest) -> Self {
+        Self {
+            name: req.name.into(),
             category: req.category.into(),
             color: req.color.into(),
-        })
+        }
     }
 }
 
@@ -46,8 +52,8 @@ impl From<CreateStatusEntity> for DBNewWorkspaceStatus {
     }
 }
 
-impl From<DBStatus> for StatusEntity {
-    fn from(status: DBStatus) -> Self {
+impl From<DBWorkspaceStatus> for StatusEntity {
+    fn from(status: DBWorkspaceStatus) -> Self {
         Self {
             id: status.id,
             name: status.name,
@@ -72,6 +78,26 @@ impl From<StatusEntity> for StatusResponse {
             created_at: status.created_at,
             updated_at: status.updated_at,
             deleted_at: status.deleted_at,
+        }
+    }
+}
+
+impl From<UpdateStatusRequest> for UpdateStatusEntity {
+    fn from(req: UpdateStatusRequest) -> Self {
+        Self {
+            name: req.name.map(|n| n.into()),
+            category: req.category.map(|c| c.into()),
+            color: req.color.map(|c| c.into()),
+        }
+    }
+}
+
+impl From<UpdateStatusEntity> for DBUpdateWorkspaceStatus {
+    fn from(status: UpdateStatusEntity) -> Self {
+        Self {
+            name: status.name,
+            category: status.category.map(|c| c.into()),
+            color: status.color.map(|c| c.into()),
         }
     }
 }

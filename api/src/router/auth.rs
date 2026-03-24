@@ -3,14 +3,11 @@ use crate::{
         auth::{
             LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse, RegisterRequest,
         },
-        error::{UnauthotizedErrorResponse, ValidationErrorResponse},
+        error::{BadRequestErrorResponse, UnauthotizedErrorResponse},
     },
-    utils::{AppTrim, FieldValidate},
+    router::extractors::{app_json::AppJson, req_ctx::Ctx},
 };
-use axum::{
-    Json, Router,
-    extract::{Query, State},
-};
+use axum::{Json, Router, extract::Query};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, OpenApi, ToSchema};
 
@@ -31,17 +28,12 @@ pub fn auth_router() -> Router<AppResources> {
     request_body = RegisterRequest,
     responses(
         (status = 200, description = "OK", body = String),
-        (status = 400, description = "Bad Request", body = ValidationErrorResponse),
+        (status = 400, description = "Bad Request", body = BadRequestErrorResponse),
     ),
 )]
 /// Register new user
-pub async fn register(
-    State(app): State<AppResources>,
-    Json(mut req): Json<RegisterRequest>,
-) -> ApiResult<String> {
-    req.app_trim();
-    req.field_validate()?;
-    app.auth_service.register(req.try_into()?).await?;
+pub async fn register(ctx: Ctx, AppJson(req): AppJson<RegisterRequest>) -> ApiResult<String> {
+    ctx.auth_service().register(req.into()).await?;
     Ok("ok".into())
 }
 
@@ -57,10 +49,10 @@ pub async fn register(
 )]
 /// Login user
 pub async fn login(
-    State(app): State<AppResources>,
-    Json(req): Json<LoginRequest>,
+    ctx: Ctx,
+    AppJson(req): AppJson<LoginRequest>,
 ) -> ApiResult<Json<LoginResponse>> {
-    let res = app.auth_service.login(req.email, req.password).await?;
+    let res = ctx.auth_service().login(req.email, req.password).await?;
     Ok(Json(res.into()))
 }
 
@@ -76,10 +68,10 @@ pub async fn login(
 )]
 /// Refresh user token
 pub async fn refresh_token(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     Json(req): Json<RefreshTokenRequest>,
 ) -> ApiResult<Json<RefreshTokenResponse>> {
-    let res = app.auth_service.refresh(&req.refresh_token).await?;
+    let res = ctx.auth_service().refresh(&req.refresh_token).await?;
     Ok(Json(res.into()))
 }
 
@@ -111,11 +103,11 @@ pub struct VerifyEmailResponse {
 )]
 /// Verify email
 pub async fn verify_email(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     Query(req): Query<VerifyEmailRequest>,
 ) -> ApiResult<Json<VerifyEmailResponse>> {
     let token = req.token;
-    app.auth_service.verify_email(&token).await?;
+    ctx.auth_service().verify_email(&token).await?;
     Ok(Json(VerifyEmailResponse {
         status: "ok".to_string(),
     }))

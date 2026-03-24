@@ -1,7 +1,6 @@
-use crate::error::ApiResult;
-
+// Трейт для триминга входящих данных по умолчанию
 pub trait AppTrim {
-    fn app_trim(&mut self);
+    fn app_trim(&mut self) {}
 }
 
 impl AppTrim for String {
@@ -23,28 +22,6 @@ impl<T: AppTrim> AppTrim for Vec<T> {
         for v in self {
             v.app_trim();
         }
-    }
-}
-
-pub trait FieldValidate {
-    fn field_validate(&self) -> ApiResult<()>;
-}
-
-impl<T: FieldValidate> FieldValidate for Option<T> {
-    fn field_validate(&self) -> ApiResult<()> {
-        if let Some(v) = self {
-            v.field_validate()?;
-        }
-        Ok(())
-    }
-}
-
-impl<T: FieldValidate> FieldValidate for Vec<T> {
-    fn field_validate(&self) -> ApiResult<()> {
-        for v in self {
-            v.field_validate()?;
-        }
-        Ok(())
     }
 }
 

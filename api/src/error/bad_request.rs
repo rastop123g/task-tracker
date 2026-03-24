@@ -13,4 +13,5 @@ pub enum BadRequestError {
     UserAlreadyInvited,
     UserIsMember,
     BadPathParams,
+    EmptyUpdate,
 }

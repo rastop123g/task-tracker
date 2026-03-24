@@ -4,20 +4,44 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    error::{ApiError, ApiResult, validation::ValidationError},
     protocol::{
         status::{CreateStatusRequest, StatusResponse},
         tag::{CreateTagRequest, TagResponse},
     },
-    utils::{AppTrim, FieldValidate},
-    validation::ValidateStringLength,
+    utils::AppTrim,
+    validation::{ValidateBody, ValidateBodyResult, ValidateStringLength},
 };
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+#[schema(description = "Workspace name")]
+pub struct WorkspaceName(pub String);
+
+impl From<WorkspaceName> for String {
+    fn from(name: WorkspaceName) -> Self {
+        name.0
+    }
+}
+
+impl AppTrim for WorkspaceName {
+    fn app_trim(&mut self) {
+        self.0.app_trim();
+    }
+}
+
+impl ValidateBody for WorkspaceName {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.0
+            .length(3, 128)
+            .into_validate_body_result("WorkspaceName")
+    }
+}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[schema(description = "Create Workspace Request")]
 pub struct CreateWorkspaceRequest {
-    pub name: String,
+    pub name: WorkspaceName,
     pub statuses: Vec<CreateStatusRequest>,
     pub tags: Vec<CreateTagRequest>,
 }
@@ -30,17 +54,12 @@ impl AppTrim for CreateWorkspaceRequest {
     }
 }
 
-impl FieldValidate for CreateWorkspaceRequest {
-    fn field_validate(&self) -> ApiResult<()> {
-        if let Err(e) = self.name.length(3, 128) {
-            return Err(ApiError::Validation(vec![ValidationError(
-                "CreateWorkspaceRequest.name",
-                e,
-            )]));
-        }
-        self.statuses.field_validate()?;
-        self.tags.field_validate()?;
-        Ok(())
+impl ValidateBody for CreateWorkspaceRequest {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.name
+            .validate_body()
+            .and(self.statuses.validate_body())
+            .and(self.tags.validate_body())
     }
 }
 
@@ -69,3 +88,33 @@ pub struct WorkspaceWithStatusesAndTagsResponse {
     pub statuses: Vec<StatusResponse>,
     pub tags: Vec<TagResponse>,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+#[schema(description = "Update Workspace Request")]
+pub struct UpdateWorkspaceRequest {
+    pub name: WorkspaceName,
+}
+
+impl AppTrim for UpdateWorkspaceRequest {
+    fn app_trim(&mut self) {
+        self.name.app_trim();
+    }
+}
+
+impl ValidateBody for UpdateWorkspaceRequest {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.name.validate_body()
+    }
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+#[schema(description = "Change Admin Request")]
+pub struct ChangeAdminRequest {
+    pub admin: Uuid,
+}
+
+impl AppTrim for ChangeAdminRequest {}
+
+impl ValidateBody for ChangeAdminRequest {}

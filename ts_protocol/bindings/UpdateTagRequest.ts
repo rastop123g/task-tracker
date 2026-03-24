@@ -2,4 +2,4 @@
 import type { ColorSchema } from "./ColorSchema";
 import type { TagName } from "./TagName";
 
-export type CreateTagRequest = { name: TagName, color: ColorSchema, };
+export type UpdateTagRequest = { name: TagName | null, color: ColorSchema | null, };

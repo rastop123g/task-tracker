@@ -3,9 +3,9 @@ use std::fmt;
 use crate::{
     error::{
         bad_request::BadRequestError, forbidden::ForbiddenError, unauthotized::UnauthotizedError,
-        validation::ValidationError,
     },
     protocol::error::{BadRequestErrorResponse, ForbiddenErrorResponse, UnauthotizedErrorResponse},
+    validation::ValidationErrorKind,
 };
 use axum::{Json, http::StatusCode, response::IntoResponse};
 use bb8::RunError;
@@ -26,7 +26,7 @@ pub enum ApiError {
     BadRequest(BadRequestError), // reason
     InternalServerError,
     CustomHttp(StatusCode, String),
-    Validation(Vec<ValidationError>),
+    Validation(Vec<ValidationErrorKind>),
 }
 
 impl fmt::Display for ApiError {
@@ -78,9 +78,7 @@ impl IntoResponse for ApiError {
             ApiError::Validation(errors) => {
                 return (
                     StatusCode::BAD_REQUEST,
-                    Json(BadRequestErrorResponse::Validation(
-                        errors.into_iter().map(|e| e.into()).collect(),
-                    )),
+                    Json(BadRequestErrorResponse::Validation(errors)),
                 )
                     .into_response();
             }

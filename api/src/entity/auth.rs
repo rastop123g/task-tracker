@@ -28,14 +28,13 @@ pub struct LoginnedUserEntity {
     pub tokens: TokensEntity,
 }
 
-impl TryFrom<crate::protocol::auth::RegisterRequest> for RegisterUserEntity {
-    type Error = crate::error::ApiError;
-    fn try_from(req: crate::protocol::auth::RegisterRequest) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: req.name,
+impl From<crate::protocol::auth::RegisterRequest> for RegisterUserEntity {
+    fn from(req: crate::protocol::auth::RegisterRequest) -> Self {
+        Self {
+            name: req.name.into(),
             email: req.email,
             password: req.password,
-        })
+        }
     }
 }
 

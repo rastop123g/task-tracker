@@ -28,7 +28,7 @@ impl UserEntity {
         if self.deleted_at.is_some() {
             return Err(ApiError::BadRequest(BadRequestError::UserDeleted));
         }
-        if self.confirmed == false {
+        if !self.confirmed {
             return Err(ApiError::BadRequest(BadRequestError::UserNotConfirmed));
         }
         Ok(())
@@ -38,7 +38,7 @@ impl UserEntity {
         if self.deleted_at.is_some() {
             return Err(ApiError::Unauthorized(UnauthotizedError::UserDeleted));
         }
-        if self.confirmed == false {
+        if !self.confirmed {
             return Err(ApiError::Unauthorized(UnauthotizedError::EmailNotConfirmed));
         }
         Ok(())

@@ -3,6 +3,34 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
+use crate::{
+    utils::AppTrim,
+    validation::{ValidateBody, ValidateBodyResult, ValidateStringLength},
+};
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema, ts_rs::TS)]
+#[ts(export)]
+#[schema(description = "User name")]
+pub struct UserName(pub String);
+
+impl From<UserName> for String {
+    fn from(name: UserName) -> Self {
+        name.0
+    }
+}
+
+impl ValidateBody for UserName {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.0.length(3, 128).into_validate_body_result("UserName")
+    }
+}
+
+impl AppTrim for UserName {
+    fn app_trim(&mut self) {
+        self.0.app_trim();
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, ts_rs::TS)]
 #[ts(export)]
 #[schema(description = "User")]
@@ -21,7 +49,19 @@ pub struct UserResponse {
 #[ts(export)]
 #[schema(description = "Update User")]
 pub struct UpdateUserRequest {
-    pub name: String,
+    pub name: UserName,
+}
+
+impl AppTrim for UpdateUserRequest {
+    fn app_trim(&mut self) {
+        self.name.app_trim();
+    }
+}
+
+impl ValidateBody for UpdateUserRequest {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.name.validate_body()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, ts_rs::TS)]

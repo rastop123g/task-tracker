@@ -41,6 +41,7 @@ pub struct UploadAvatar {
 #[utoipa::path(
     post,
     path = "",
+    description = "Upload User avatar, only owner can upload",
     tag = "avatar",
     request_body(content_type = "multipart/form-data", content = UploadAvatar),
     security(("api_key" = [])),
@@ -51,6 +52,7 @@ pub struct UploadAvatar {
         (status = 403, description = "Forbidden", body = ForbiddenErrorResponse),
     ),
 )]
+/// Upload User avatar
 async fn upload_avatar(
     State(app): State<AppResources>,
     UserAuth(mut user): UserAuth,
@@ -84,6 +86,7 @@ async fn upload_avatar(
 #[utoipa::path(
     get,
     path = "/{user_id}",
+    description = "Get User avatar, public, includes etag",
     tag = "avatar",
     responses(
         (status = 200, description = "OK"),
@@ -92,6 +95,7 @@ async fn upload_avatar(
         ("user_id" = Uuid, Path, description = "User ID"),
     ),
 )]
+/// Get User avatar
 async fn get_avatar(
     State(app): State<AppResources>,
     Path(user_id): Path<Uuid>,
@@ -103,15 +107,14 @@ async fn get_avatar(
         let storage_key = user
             .avatar
             .ok_or(ApiError::NotFound("avatar".to_string()))?;
-        if let Some(client_etag) = headers.get(header::IF_NONE_MATCH) {
-            if client_etag.to_str().unwrap_or("") == storage_key {
-                return Ok(Response::builder()
+        if let Some(client_etag) = headers.get(header::IF_NONE_MATCH)
+            && client_etag.to_str().unwrap_or("") == storage_key {
+                return Response::builder()
                     .status(StatusCode::NOT_MODIFIED)
                     .header(header::ETAG, format!("\"{storage_key}\""))
                     .body(Body::empty())
-                    .map_err(|_| ApiError::InternalServerError)?);
+                    .map_err(|_| ApiError::InternalServerError);
             }
-        }
         let resp = app
             .s3
             .get_object()
@@ -158,6 +161,7 @@ async fn get_avatar(
 #[utoipa::path(
     delete,
     path = "",
+    description = "Delete User avatar, only owner can delete",
     tag = "avatar",
     responses(
         (status = 200, description = "OK"),
@@ -165,6 +169,7 @@ async fn get_avatar(
         (status = 401, description = "Unauthorized", body = UnauthotizedErrorResponse),
     ),
 )]
+/// Delete User avatar
 async fn delete_avatar(
     State(app): State<AppResources>,
     UserAuth(mut user): UserAuth,

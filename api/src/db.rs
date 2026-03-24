@@ -14,7 +14,7 @@ pub type DbPool = Pool<Postgres>;
 
 pub async fn init_pool(database_url: &str) -> anyhow::Result<DbPool> {
     let pool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(100)
         .idle_timeout(Duration::from_secs(900))
         .acquire_timeout(Duration::from_secs(5))
         .connect(database_url)

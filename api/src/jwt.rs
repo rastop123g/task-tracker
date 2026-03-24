@@ -18,7 +18,7 @@ pub fn create(
 ) -> ApiResult<String> {
     let exp = exp.timestamp() as usize;
     let claims = Claims {
-        sub: user_id.clone(),
+        sub: *user_id,
         exp,
     };
     let encoded = jsonwebtoken::encode(

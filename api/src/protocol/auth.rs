@@ -4,17 +4,17 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    error::{ApiError, ApiResult, validation::ValidationError},
-    utils::{AppTrim, FieldValidate},
-    validation::{AppValidateEmail, ValidateStringLength},
+    protocol::user::UserName,
+    utils::AppTrim,
+    validation::{AppValidateEmail, ValidateBody, ValidateBodyResult, ValidateStringLength},
 };
 
-#[derive(Serialize, Deserialize, ToSchema, ts_rs::TS)]
+#[derive(Serialize, Clone, Deserialize, ToSchema, ts_rs::TS)]
 #[ts(export)]
 #[schema(description = "Register a new user")]
 pub struct RegisterRequest {
     /// User name (full)
-    pub name: String,
+    pub name: UserName,
     /// User email
     pub email: String,
     /// User password
@@ -29,26 +29,24 @@ impl AppTrim for RegisterRequest {
     }
 }
 
-impl FieldValidate for RegisterRequest {
-    fn field_validate(&self) -> ApiResult<()> {
-        let mut errs = Vec::new();
-        if let Err(e) = self.name.length(3, 128) {
-            errs.push(ValidationError("RegisterRequest.name", e));
-        }
-        if let Err(e) = self.email.validate_email() {
-            errs.push(ValidationError("RegisterRequest.email", e));
-        }
-        if let Err(e) = self.password.length(8, 128) {
-            errs.push(ValidationError("RegisterRequest.password", e));
-        }
-        if errs.len() > 0 {
-            return Err(ApiError::Validation(errs));
-        }
-        Ok(())
+impl ValidateBody for RegisterRequest {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.name
+            .validate_body()
+            .and(
+                self.email
+                    .validate_email()
+                    .into_validate_body_result("RegisterRequest.email"),
+            )
+            .and(
+                self.password
+                    .length(8, 128)
+                    .into_validate_body_result("RegisterRequest.password"),
+            )
     }
 }
 
-#[derive(Serialize, Deserialize, ToSchema, ts_rs::TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ts_rs::TS)]
 #[ts(export)]
 #[schema(description = "Login user request")]
 pub struct LoginRequest {
@@ -56,6 +54,26 @@ pub struct LoginRequest {
     pub email: String,
     /// User password
     pub password: String,
+}
+
+impl AppTrim for LoginRequest {
+    fn app_trim(&mut self) {
+        self.email.app_trim();
+        self.password.app_trim();
+    }
+}
+
+impl ValidateBody for LoginRequest {
+    fn validate_body(&self) -> ValidateBodyResult {
+        self.email
+            .max_length(256)
+            .into_validate_body_result("LoginRequest.email")
+            .and(
+                self.password
+                    .max_length(256)
+                    .into_validate_body_result("LoginRequest.password"),
+            )
+    }
 }
 
 #[derive(Serialize, Deserialize, ToSchema, ts_rs::TS)]
