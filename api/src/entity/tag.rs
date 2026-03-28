@@ -1,10 +1,9 @@
 use uuid::Uuid;
 
 use crate::{
-    db::tag::{DBNewWorkspaceTag, DBTag},
+    db::tag::{DBNewWorkspaceTag, DBTag, DBUpdateWorkspaceTag},
     entity::common::ColorEntity,
-    error::ApiError,
-    protocol::tag::TagResponse,
+    protocol::tag::{CreateTagRequest, TagResponse, UpdateTagRequest},
 };
 
 #[derive(Debug, Clone)]
@@ -24,13 +23,18 @@ pub struct TagEntity {
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl TryFrom<crate::protocol::tag::CreateTagRequest> for CreateTagEntity {
-    type Error = ApiError;
-    fn try_from(req: crate::protocol::tag::CreateTagRequest) -> Result<Self, Self::Error> {
-        Ok(Self {
-            name: req.name,
+#[derive(Debug, Clone)]
+pub struct UpdateTagEntity {
+    pub name: Option<String>,
+    pub color: Option<ColorEntity>,
+}
+
+impl From<CreateTagRequest> for CreateTagEntity {
+    fn from(req: CreateTagRequest) -> Self {
+        Self {
+            name: req.name.into(),
             color: req.color.into(),
-        })
+        }
     }
 }
 
@@ -67,6 +71,24 @@ impl From<TagEntity> for TagResponse {
             created_at: tag.created_at,
             updated_at: tag.updated_at,
             deleted_at: tag.deleted_at,
+        }
+    }
+}
+
+impl From<UpdateTagRequest> for UpdateTagEntity {
+    fn from(req: UpdateTagRequest) -> Self {
+        Self {
+            name: req.name.map(|n| n.into()),
+            color: req.color.map(|c| c.into()),
+        }
+    }
+}
+
+impl From<UpdateTagEntity> for DBUpdateWorkspaceTag {
+    fn from(tag: UpdateTagEntity) -> Self {
+        Self {
+            name: tag.name,
+            color: tag.color.map(|c| c.into()),
         }
     }
 }

@@ -1,8 +1,10 @@
 use utoipa::ToSchema;
 
-use crate::error::{
-    bad_request::BadRequestError, forbidden::ForbiddenError, unauthotized::UnauthotizedError,
-    validation::ValidationErrorNamed,
+use crate::{
+    error::{
+        bad_request::BadRequestError, forbidden::ForbiddenError, unauthotized::UnauthotizedError,
+    },
+    validation::ValidationErrorKind,
 };
 
 #[derive(serde::Serialize, ToSchema, Clone, Debug, ts_rs::TS)]
@@ -10,13 +12,6 @@ use crate::error::{
 #[ts(export)]
 pub struct UnauthotizedErrorResponse {
     pub reason: UnauthotizedError,
-}
-
-#[derive(serde::Serialize, ToSchema, Clone, Debug, ts_rs::TS)]
-#[schema(description = "Validation Error")]
-#[ts(export)]
-pub struct ValidationErrorResponse {
-    pub errors: Vec<ValidationErrorNamed>,
 }
 
 #[derive(serde::Serialize, ToSchema, Clone, Debug, ts_rs::TS)]
@@ -29,6 +24,6 @@ pub struct ForbiddenErrorResponse {
 #[ts(export)]
 #[serde(tag = "type", content = "reason")]
 pub enum BadRequestErrorResponse {
-    Validation(Vec<ValidationErrorNamed>),
+    Validation(Vec<ValidationErrorKind>),
     Other(BadRequestError),
 }

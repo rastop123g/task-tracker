@@ -9,6 +9,7 @@ use crate::{
     entity::user::UserEntity,
     error::{ApiError, unauthotized::UnauthotizedError},
     jwt,
+    router::extractors::req_ctx::Ctx,
 };
 
 #[derive(Debug, Clone)]
@@ -29,7 +30,7 @@ where
         if let Some(user_auth) = user_auth {
             return Ok(user_auth.clone());
         }
-        let State(app): State<AppResources> = State::from_request_parts(parts, state)
+        let ctx: Ctx = Ctx::from_request_parts(parts, state)
             .await
             .map_err(|_| ApiError::InternalServerError)?;
 
@@ -43,11 +44,15 @@ where
             .strip_prefix("Bearer ")
             .ok_or(ApiError::Unauthorized(UnauthotizedError::MissingToken))?;
 
-        let user_id = jwt::verify(token, &app.config)?;
-        let user = app.user_service.get(&user_id).await.map_err(|e| match e {
-            ApiError::NotFound(_) => ApiError::Unauthorized(UnauthotizedError::InvalidToken),
-            _ => ApiError::InternalServerError,
-        })?;
+        let user_id = jwt::verify(token, &ctx.app.config)?;
+        let user = ctx
+            .user_service()
+            .get(&user_id)
+            .await
+            .map_err(|e| match e {
+                ApiError::NotFound(_) => ApiError::Unauthorized(UnauthotizedError::InvalidToken),
+                _ => ApiError::InternalServerError,
+            })?;
         let user_auth = UserAuth(user);
         parts.extensions.insert(user_auth.clone());
         Ok(user_auth)

@@ -37,4 +37,11 @@ pub trait RedisCache<T>: Clone + std::fmt::Debug + Serialize + DeserializeOwned 
         let _: () = r.del(key).await?;
         Ok(())
     }
+
+    async fn clear_id(id: &T, client: &RedisClient) -> ApiResult<()> {
+        let key = Self::key_from(id);
+        let mut r = client.get().await?;
+        let _: () = r.del(key).await?;
+        Ok(())
+    }
 }

@@ -37,6 +37,7 @@ pub fn workspace_avatar_router() -> Router<crate::app_resources::AppResources> {
 #[utoipa::path(
     post,
     path = "",
+    description = "Upload workspace avatar, only admin can upload",
     tag = "workspace_avatar",
     request_body(content_type = "multipart/form-data", content = UploadAvatar),
     params(
@@ -49,6 +50,7 @@ pub fn workspace_avatar_router() -> Router<crate::app_resources::AppResources> {
         (status = 403, description = "Forbidden", body = ForbiddenErrorResponse),
     ),
 )]
+/// Upload workspace avatar
 async fn upload_workspace_avatar(
     State(app): State<AppResources>,
     wa: WorkspaceWithAdmin<WorkspacePathParams>,
@@ -75,13 +77,14 @@ async fn upload_workspace_avatar(
         let workspace: WorkspaceEntity = workspace.into();
         Ok(Json(workspace.into()))
     } else {
-        return Err(ApiError::NotFound("workspace".to_string()));
+        Err(ApiError::NotFound("workspace".to_string()))
     }
 }
 
 #[utoipa::path(
     delete,
     path = "",
+    description = "Delete workspace avatar, only admin can delete",
     tag = "workspace_avatar",
     responses(
         (status = 200, description = "OK"),
@@ -93,6 +96,7 @@ async fn upload_workspace_avatar(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
     ),
 )]
+/// Delete workspace avatar
 async fn delete_workspace_avatar(
     State(app): State<AppResources>,
     wa: WorkspaceWithAdmin<WorkspacePathParams>,
@@ -113,13 +117,14 @@ async fn delete_workspace_avatar(
         let workspace: WorkspaceEntity = workspace.into();
         Ok(Json(workspace.into()))
     } else {
-        return Err(ApiError::NotFound("workspace".to_string()));
+        Err(ApiError::NotFound("workspace".to_string()))
     }
 }
 
 #[utoipa::path(
     get,
     path = "",
+    description = "Get workspace avatar, public, includes etag",
     tag = "workspace_avatar",
     responses(
         (status = 200, description = "OK"),
@@ -128,6 +133,7 @@ async fn delete_workspace_avatar(
         ("workspace_id" = Uuid, Path, description = "Workspace ID"),
     ),
 )]
+/// Get workspace avatar
 async fn get_avatar(
     State(app): State<AppResources>,
     Path(workspace_id): Path<Uuid>,
@@ -139,15 +145,14 @@ async fn get_avatar(
         let storage_key = workspace
             .avatar
             .ok_or(ApiError::NotFound("avatar".to_string()))?;
-        if let Some(client_etag) = headers.get(header::IF_NONE_MATCH) {
-            if client_etag.to_str().unwrap_or("") == storage_key {
-                return Ok(Response::builder()
+        if let Some(client_etag) = headers.get(header::IF_NONE_MATCH)
+            && client_etag.to_str().unwrap_or("") == storage_key {
+                return Response::builder()
                     .status(StatusCode::NOT_MODIFIED)
                     .header(header::ETAG, format!("\"{storage_key}\""))
                     .body(Body::empty())
-                    .map_err(|_| ApiError::InternalServerError)?);
+                    .map_err(|_| ApiError::InternalServerError);
             }
-        }
         let resp = app
             .s3
             .get_object()

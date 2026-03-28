@@ -3,4 +3,4 @@ import type { ColorSchema } from "./ColorSchema";
 import type { StatusCategorySchema } from "./StatusCategorySchema";
 import type { StatusName } from "./StatusName";
 
-export type CreateStatusRequest = { name: StatusName, category: StatusCategorySchema, color: ColorSchema, };
+export type UpdateStatusRequest = { name: StatusName | null, category: StatusCategorySchema | null, color: ColorSchema | null, };

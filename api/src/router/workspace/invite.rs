@@ -1,7 +1,4 @@
-use axum::{
-    Json, Router,
-    extract::{Query, State},
-};
+use axum::{Json, Router, extract::Query};
 use utoipa::OpenApi;
 
 use crate::{
@@ -15,6 +12,7 @@ use crate::{
     router::{
         extractors::{
             auth::UserAuth,
+            req_ctx::Ctx,
             workspace::{WorkspaceFromPath, WorkspaceWithAdmin},
         },
         path_params::WorkspacePathParams,
@@ -44,11 +42,11 @@ pub fn invite_router() -> Router<AppResources> {
 )]
 /// Get invitations
 pub async fn get_workspace_invitations(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     wa: WorkspaceWithAdmin<WorkspacePathParams>,
 ) -> ApiResult<Json<Vec<WorkspaceInviteResponse>>> {
-    let invitations = app
-        .workspace_invite_service
+    let invitations = ctx
+        .workspace_invite_service()
         .get_workspace_invitations(&wa.workspace.id)
         .await?;
     Ok(Json(invitations.into_iter().map(Into::into).collect()))
@@ -71,12 +69,12 @@ pub async fn get_workspace_invitations(
 )]
 /// Invite user to workspace
 pub async fn create_invite(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     wa: WorkspaceWithAdmin<WorkspacePathParams>,
     Json(req): Json<CreateInviteRequest>,
 ) -> ApiResult<Json<WorkspaceInviteResponse>> {
-    let invite = app
-        .workspace_invite_service
+    let invite = ctx
+        .workspace_invite_service()
         .create(&wa.workspace.id, &req.user_id)
         .await?;
     Ok(Json(invite.into()))
@@ -100,11 +98,11 @@ pub async fn create_invite(
 )]
 /// Delete invite to workspace
 pub async fn delete_invite(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     wa: WorkspaceWithAdmin<WorkspacePathParams>,
     Json(req): Json<DeleteInviteRequest>,
 ) -> ApiResult<()> {
-    app.workspace_invite_service
+    ctx.workspace_invite_service()
         .delete(&wa.workspace.id, &req.user_id)
         .await?;
     Ok(())
@@ -126,12 +124,12 @@ pub async fn delete_invite(
 )]
 /// Search users
 pub async fn get_users_for_invite(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     w: WorkspaceWithAdmin<WorkspacePathParams>,
     Query(req): Query<SearchUserRequest>,
 ) -> ApiResult<Json<Vec<UserListItemResponse>>> {
-    let users = app
-        .workspace_invite_service
+    let users = ctx
+        .workspace_invite_service()
         .users_for_invite_search(req.search, req.limit, req.offset, &w.workspace.id)
         .await?;
     Ok(Json(users.into_iter().map(Into::into).collect()))
@@ -154,11 +152,11 @@ pub async fn get_users_for_invite(
 )]
 /// Accept invite
 pub async fn accept_invite(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     w: WorkspaceFromPath<WorkspacePathParams>,
     UserAuth(user): UserAuth,
 ) -> ApiResult<()> {
-    app.workspace_invite_service
+    ctx.workspace_invite_service()
         .accept_invite(&w.workspace.id, &user.id)
         .await?;
     Ok(())

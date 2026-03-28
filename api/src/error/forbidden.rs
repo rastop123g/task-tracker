@@ -5,4 +5,5 @@ use utoipa::ToSchema;
 pub enum ForbiddenError {
     OwnerOnly,
     WorkspaceAdminOnly,
+    UserNotMember,
 }

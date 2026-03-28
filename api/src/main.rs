@@ -67,6 +67,7 @@ async fn serve() -> anyhow::Result<()> {
         .force_path_style(config.s3.force_path_style)
         .build();
     let s3 = aws_sdk_s3::Client::from_conf(s3_config);
+    let nats = Arc::new(nats);
 
     let res = AppResources::new(db, nats, redis, config.clone(), s3);
 
@@ -79,6 +80,7 @@ async fn serve() -> anyhow::Result<()> {
         )
         .with_state(res)
         .merge(SwaggerUi::new("/api/docs").url("/api/openapi.json", ApiDoc::openapi()));
+
     let listener =
         tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     tracing::info!("Listening on {}:{}", config.host, config.port);

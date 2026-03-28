@@ -9,7 +9,7 @@ pub type RedisClient = Pool<RedisConnectionManager>;
 pub async fn create_redis_pool(redis_url: &str) -> Result<RedisClient> {
     let manager = RedisConnectionManager::new(redis_url)?;
     let pool = Pool::builder()
-        .max_size(10)
+        .max_size(100)
         .connection_timeout(Duration::from_secs(5))
         .idle_timeout(Duration::from_secs(600))
         .build(manager)

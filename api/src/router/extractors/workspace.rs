@@ -1,5 +1,5 @@
 use axum::{
-    extract::{FromRef, FromRequestParts, Path, State},
+    extract::{FromRef, FromRequestParts, Path},
     http::request::Parts,
 };
 use serde::de::DeserializeOwned;
@@ -8,7 +8,10 @@ use crate::{
     app_resources::AppResources,
     entity::{user::UserEntity, workspace::WorkspaceEntity},
     error::{ApiError, bad_request::BadRequestError, forbidden::ForbiddenError},
-    router::{extractors::auth::UserAuth, path_params::WorkspaceIdFromPathParams},
+    router::{
+        extractors::{auth::UserAuth, req_ctx::Ctx},
+        path_params::WorkspaceIdFromPathParams,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -37,14 +40,14 @@ where
                 _marker: std::marker::PhantomData,
             });
         }
-        let State(app): State<AppResources> = State::from_request_parts(parts, state)
+        let ctx: Ctx = Ctx::from_request_parts(parts, state)
             .await
             .map_err(|_| ApiError::InternalServerError)?;
         let Path(params): Path<T> = Path::from_request_parts(parts, state)
             .await
             .map_err(|_| ApiError::BadRequest(BadRequestError::BadPathParams))?;
         let workspace_id = params.workspace_id();
-        let workspace = app.workspace_service.get(&workspace_id).await?;
+        let workspace = ctx.workspace_service().get(&workspace_id).await?;
         //cache workspace
         parts
             .extensions
@@ -64,9 +67,10 @@ pub struct WorkspaceWithAdmin<P> {
 }
 
 #[derive(Debug, Clone)]
-pub struct WorkspaceMember {
+pub struct WorkspaceMember<P> {
     pub workspace: WorkspaceEntity,
     pub member: UserEntity,
+    _phantom: std::marker::PhantomData<P>,
 }
 
 impl<S, P> FromRequestParts<S> for WorkspaceWithAdmin<P>
@@ -87,6 +91,36 @@ where
         Ok(WorkspaceWithAdmin {
             workspace,
             admin: user,
+            _phantom: std::marker::PhantomData,
+        })
+    }
+}
+
+impl<S, P> FromRequestParts<S> for WorkspaceMember<P>
+where
+    S: Send + Sync,
+    AppResources: FromRef<S>,
+    P: WorkspaceIdFromPathParams + Send + Sync + DeserializeOwned,
+{
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let ctx: Ctx = Ctx::from_request_parts(parts, state)
+            .await
+            .map_err(|_| ApiError::InternalServerError)?;
+        let UserAuth(user): UserAuth = UserAuth::from_request_parts(parts, state).await?;
+        let WorkspaceFromPath { workspace, .. }: WorkspaceFromPath<P> =
+            WorkspaceFromPath::from_request_parts(parts, state).await?;
+        let is_member = ctx
+            .workspace_member_service()
+            .check_member(&workspace.id, &user.id)
+            .await?;
+        if !is_member {
+            return Err(ApiError::Forbidden(ForbiddenError::UserNotMember));
+        }
+        Ok(WorkspaceMember {
+            workspace,
+            member: user,
             _phantom: std::marker::PhantomData,
         })
     }

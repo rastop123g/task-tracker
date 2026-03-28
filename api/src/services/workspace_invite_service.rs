@@ -1,35 +1,31 @@
-use std::sync::Arc;
-
 use uuid::Uuid;
 
 use crate::{
-    config::Config,
     db::{
-        DbPool, user::DBUserListItem, workspace_invite::DBWorkspaceInvite,
+        user::DBUserListItem, workspace_invite::DBWorkspaceInvite,
         workspace_member::DBWorkspaceMember,
     },
     entity::{user::UserListItemEntity, workspace_invite::WorkspaceInviteEntity},
     error::{ApiError, ApiResult, bad_request::BadRequestError},
-    redis::RedisClient,
+    router::extractors::req_ctx::Ctx,
 };
 
 #[derive(Debug, Clone)]
 pub struct WorkspaceInviteService {
-    db: DbPool,
-    redis: RedisClient,
-    config: Arc<Config>,
+    ctx: Ctx,
 }
 
 impl WorkspaceInviteService {
-    pub fn new(db: DbPool, redis: RedisClient, config: Arc<Config>) -> Self {
-        Self { db, redis, config }
+    pub fn new(ctx: Ctx) -> Self {
+        Self { ctx }
     }
 
     pub async fn get_user_invitations(
         &self,
         user_id: &Uuid,
     ) -> ApiResult<Vec<WorkspaceInviteEntity>> {
-        let mut conn = self.db.acquire().await?;
+        let app = &self.ctx.app;
+        let mut conn = app.db.acquire().await?;
         let workspace_invites = DBWorkspaceInvite::get_by_user_id(user_id, &mut conn).await?;
         Ok(workspace_invites.into_iter().map(Into::into).collect())
     }
@@ -38,7 +34,8 @@ impl WorkspaceInviteService {
         &self,
         workspace_id: &Uuid,
     ) -> ApiResult<Vec<WorkspaceInviteEntity>> {
-        let mut conn = self.db.acquire().await?;
+        let app = &self.ctx.app;
+        let mut conn = app.db.acquire().await?;
         let workspace_invites =
             DBWorkspaceInvite::get_by_workspace_id(workspace_id, &mut conn).await?;
         Ok(workspace_invites.into_iter().map(Into::into).collect())
@@ -49,7 +46,8 @@ impl WorkspaceInviteService {
         workspace_id: &Uuid,
         user_id: &Uuid,
     ) -> ApiResult<WorkspaceInviteEntity> {
-        let mut conn = self.db.acquire().await?;
+        let app = &self.ctx.app;
+        let mut conn = app.db.acquire().await?;
         let member = DBWorkspaceMember::get(user_id, workspace_id, &mut conn).await?;
         if let Some(member) = member
             && member.deleted_at.is_none()
@@ -67,7 +65,8 @@ impl WorkspaceInviteService {
     }
 
     pub async fn delete(&self, workspace_id: &Uuid, user_id: &Uuid) -> ApiResult<()> {
-        let mut conn = self.db.acquire().await?;
+        let app = &self.ctx.app;
+        let mut conn = app.db.acquire().await?;
         let invite = DBWorkspaceInvite::get(workspace_id, user_id, &mut conn).await?;
         let has_invite = invite
             .map(|invite| invite.deleted_at.is_none())
@@ -86,16 +85,18 @@ impl WorkspaceInviteService {
         offset: Option<i32>,
         workspace_id: &Uuid,
     ) -> ApiResult<Vec<UserListItemEntity>> {
-        let limit = limit.unwrap_or(50);
-        let offset = offset.unwrap_or(0);
-        let mut conn = self.db.acquire().await?;
+        let app = &self.ctx.app;
+        let limit = limit.unwrap_or(50).clamp(10, 200);
+        let offset = offset.unwrap_or(0).max(0);
+        let mut conn = app.db.acquire().await?;
         let users =
             DBUserListItem::list_for_invite(search, limit, offset, workspace_id, &mut conn).await?;
         Ok(users.into_iter().map(Into::into).collect())
     }
 
     pub async fn accept_invite(&self, workspace_id: &Uuid, user_id: &Uuid) -> ApiResult<()> {
-        let mut conn = self.db.begin().await?;
+        let app = &self.ctx.app;
+        let mut conn = app.db.begin().await?;
         let invite = DBWorkspaceInvite::get(workspace_id, user_id, &mut conn).await?;
         let member = DBWorkspaceMember::get(user_id, workspace_id, &mut conn).await?;
         if let Some(member) = member
@@ -112,7 +113,7 @@ impl WorkspaceInviteService {
             conn.commit().await?;
             Ok(())
         } else {
-            return Err(ApiError::NotFound("workspace_invite".to_string()));
+            Err(ApiError::NotFound("workspace_invite".to_string()))
         }
     }
 }

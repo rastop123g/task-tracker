@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
+    extract::{Path, Query},
 };
 use sha2::{Digest, Sha256};
 use utoipa::OpenApi;
@@ -17,7 +17,7 @@ use crate::{
         },
         workspace_invite::UserInviteResponse,
     },
-    router::extractors::auth::UserAuth,
+    router::extractors::{app_json::AppJson, auth::UserAuth, req_ctx::Ctx},
 };
 
 pub fn user_router() -> Router<AppResources> {
@@ -56,11 +56,11 @@ pub async fn get_me(UserAuth(user): UserAuth) -> ApiResult<Json<UserResponse>> {
 )]
 /// Update current user
 pub async fn update_user(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     UserAuth(user): UserAuth,
-    Json(req): Json<UpdateUserRequest>,
+    AppJson(req): AppJson<UpdateUserRequest>,
 ) -> ApiResult<Json<UserResponse>> {
-    let updated = app.user_service.update(&user.id, req.name).await?;
+    let updated = ctx.user_service().update(&user.id, req.name.into()).await?;
     Ok(Json(updated.into()))
 }
 
@@ -76,7 +76,7 @@ pub async fn update_user(
 )]
 /// Change password
 pub async fn change_password(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     UserAuth(user): UserAuth,
     Json(req): Json<ChangePasswordRequest>,
 ) -> ApiResult<Json<UserResponse>> {
@@ -85,8 +85,8 @@ pub async fn change_password(
     if hex_password != user.password {
         return Err(ApiError::BadRequest(BadRequestError::OldPasswordWrong));
     }
-    let updated = app
-        .user_service
+    let updated = ctx
+        .user_service()
         .change_password(&user.id, req.new_password)
         .await?;
     Ok(Json(updated.into()))
@@ -102,11 +102,8 @@ pub async fn change_password(
     ),
 )]
 /// Get user
-pub async fn get_user(
-    State(app): State<AppResources>,
-    Path(user_id): Path<Uuid>,
-) -> ApiResult<Json<UserResponse>> {
-    let user = app.user_service.get(&user_id).await?;
+pub async fn get_user(ctx: Ctx, Path(user_id): Path<Uuid>) -> ApiResult<Json<UserResponse>> {
+    let user = ctx.user_service().get(&user_id).await?;
     Ok(Json(user.into()))
 }
 
@@ -124,12 +121,12 @@ pub async fn get_user(
 )]
 /// Search users
 pub async fn search_users(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     UserAuth(_user): UserAuth,
     Query(req): Query<SearchUserRequest>,
 ) -> ApiResult<Json<Vec<UserListItemResponse>>> {
-    let users = app
-        .user_service
+    let users = ctx
+        .user_service()
         .users_search(req.search, req.limit, req.offset)
         .await?;
     Ok(Json(users.into_iter().map(Into::into).collect()))
@@ -146,11 +143,11 @@ pub async fn search_users(
 )]
 /// Get invitations
 pub async fn get_invitations(
-    State(app): State<AppResources>,
+    ctx: Ctx,
     UserAuth(user): UserAuth,
 ) -> ApiResult<Json<Vec<UserInviteResponse>>> {
-    let invitations = app
-        .workspace_invite_service
+    let invitations = ctx
+        .workspace_invite_service()
         .get_user_invitations(&user.id)
         .await?;
     Ok(Json(invitations.into_iter().map(Into::into).collect()))

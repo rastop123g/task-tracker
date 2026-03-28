@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    cache::RedisCache,
     db::workspace::DBWorkspace,
     entity::{status::CreateStatusEntity, tag::CreateTagEntity},
     error::{ApiError, bad_request::BadRequestError},
     protocol::workspace::{CreateWorkspaceRequest, WorkspaceResponse},
-    utils::TryIntoVec,
 };
 
 #[derive(Debug, Clone)]
@@ -16,7 +17,7 @@ pub struct CreateWorkspaceEntity {
     pub tags: Vec<CreateTagEntity>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceEntity {
     pub id: Uuid,
     pub name: String,
@@ -25,6 +26,20 @@ pub struct WorkspaceEntity {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+impl RedisCache<Uuid> for WorkspaceEntity {
+    fn cache_key(&self) -> String {
+        Self::key_from(&self.id)
+    }
+
+    fn key_from(id: &Uuid) -> String {
+        format!("workspace-entity:{}", id)
+    }
+
+    fn cache_exp(&self) -> u64 {
+        60 * 60 * 24 * 7 // 7 days
+    }
 }
 
 impl TryFrom<CreateWorkspaceRequest> for CreateWorkspaceEntity {
@@ -36,9 +51,9 @@ impl TryFrom<CreateWorkspaceRequest> for CreateWorkspaceEntity {
             ));
         }
         Ok(Self {
-            name: req.name,
-            statuses: req.statuses.try_into_vec()?,
-            tags: req.tags.try_into_vec()?,
+            name: req.name.into(),
+            statuses: req.statuses.into_iter().map(Into::into).collect(),
+            tags: req.tags.into_iter().map(Into::into).collect(),
         })
     }
 }
