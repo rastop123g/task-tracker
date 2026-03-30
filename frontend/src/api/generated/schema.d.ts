@@ -81,7 +81,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /**
+         * Upload User avatar
+         * @description Upload User avatar, only owner can upload
+         */
         post: operations["upload_avatar"];
+        /**
+         * Delete User avatar
+         * @description Delete User avatar, only owner can delete
+         */
         delete: operations["delete_avatar"];
         options?: never;
         head?: never;
@@ -95,7 +103,45 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Get User avatar
+         * @description Get User avatar, public, includes etag
+         */
         get: operations["get_avatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/user/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get invitations */
+        get: operations["get_invitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/user/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search users */
+        get: operations["search_users"];
         put?: never;
         post?: never;
         delete?: never;
@@ -156,6 +202,285 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workspace/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create new workspace */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get workspace */
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update workspace */
+        patch: operations["update"];
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get workspace avatar
+         * @description Get workspace avatar, public, includes etag
+         */
+        get: operations["get_avatar"];
+        put?: never;
+        /**
+         * Upload workspace avatar
+         * @description Upload workspace avatar, only admin can upload
+         */
+        post: operations["upload_workspace_avatar"];
+        /**
+         * Delete workspace avatar
+         * @description Delete workspace avatar, only admin can delete
+         */
+        delete: operations["delete_workspace_avatar"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/change-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change workspace admin */
+        post: operations["change_admin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite user to workspace */
+        post: operations["create_invite"];
+        /** Delete invite to workspace */
+        delete: operations["delete_invite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/invite/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept invite */
+        post: operations["accept_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/invite/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get invitations */
+        get: operations["get_workspace_invitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/invite/list-for-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search users */
+        get: operations["get_users_for_invite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create status
+         * @description Create status, only admin can create
+         */
+        post: operations["create_status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/status/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get statuses for workspace
+         * @description Get statuses for workspace, only members can get
+         */
+        get: operations["get_statuses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/status/{status_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get status */
+        get: operations["get_status"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete status
+         * @description Delete status, only admin can delete
+         */
+        delete: operations["delete_status"];
+        options?: never;
+        head?: never;
+        /**
+         * Update status
+         * @description Update status, only admin can update
+         */
+        patch: operations["update_status"];
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/tag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create tag
+         * @description Create tag, only admin can create
+         */
+        post: operations["create_tag"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/tag/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get tags for workspace
+         * @description Get tags for workspace, only members can get
+         */
+        get: operations["get_tags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspace/{workspace_id}/tag/{tag_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get tag */
+        get: operations["get_tag"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete tag
+         * @description Delete tag, only admin can delete
+         */
+        delete: operations["delete_tag"];
+        options?: never;
+        head?: never;
+        /**
+         * Update tag
+         * @description Update tag, only admin can update
+         */
+        patch: operations["update_tag"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -165,13 +490,80 @@ export interface components {
             /** @description Error reason */
             error: string;
         };
+        /** @enum {string} */
+        BadRequestError: "UserNotConfirmed" | "UserAlreadyConfirmed" | "UserDeleted" | "EmailAlreadyUsed" | "OldPasswordWrong" | "MissingStatusOnCreateWorkspace" | "AvatarMissing" | "UserAlreadyInvited" | "UserIsMember" | "BadPathParams" | "EmptyUpdate";
+        BadRequestErrorResponse: {
+            reason: components["schemas"]["ValidationErrorKind"][];
+            /** @enum {string} */
+            type: "Validation";
+        } | {
+            reason: components["schemas"]["BadRequestError"];
+            /** @enum {string} */
+            type: "Other";
+        };
+        /** @description Change Admin Request */
+        ChangeAdminRequest: {
+            /** Format: uuid */
+            admin: string;
+        };
         /** @description Change password */
         ChangePasswordRequest: {
             old_password: string;
             new_password: string;
         };
         /** @enum {string} */
-        ForbiddenError: "OwnerOnly";
+        ColorSchema: "red" | "green" | "blue" | "yellow" | "pink" | "purple" | "orange" | "brown" | "gray";
+        /** @description Create invite */
+        CreateInviteRequest: {
+            /** Format: uuid */
+            user_id: string;
+        };
+        /** @description Create Status Request */
+        CreateStatusRequest: {
+            name: components["schemas"]["StatusName"];
+            category: components["schemas"]["StatusCategorySchema"];
+            color: components["schemas"]["ColorSchema"];
+        };
+        /** @description Create Tag Request */
+        CreateTagRequest: {
+            name: components["schemas"]["TagName"];
+            color: components["schemas"]["ColorSchema"];
+        };
+        /** @description Create Workspace Request */
+        CreateWorkspaceRequest: {
+            name: components["schemas"]["WorkspaceName"];
+            statuses: components["schemas"]["CreateStatusRequest"][];
+            tags: components["schemas"]["CreateTagRequest"][];
+        };
+        /** @description Create invite */
+        DeleteInviteRequest: {
+            /** Format: uuid */
+            user_id: string;
+        };
+        FieldValidationErrorKind: {
+            value: number;
+            /** @enum {string} */
+            type: "MinLength";
+        } | {
+            value: number;
+            /** @enum {string} */
+            type: "MaxLength";
+        } | {
+            value: {
+                min: number;
+                max: number;
+            };
+            /** @enum {string} */
+            type: "Length";
+        } | {
+            /** @enum {string} */
+            type: "Email";
+        } | {
+            /** @enum {string} */
+            type: "Url";
+        };
+        /** @enum {string} */
+        ForbiddenError: "OwnerOnly" | "WorkspaceAdminOnly" | "UserNotMember";
         ForbiddenErrorResponse: {
             reason: components["schemas"]["ForbiddenError"];
         };
@@ -191,8 +583,6 @@ export interface components {
             user_id: string;
             name: string;
             email: string;
-            avatar?: string | null;
-            avatar_preview?: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -248,11 +638,48 @@ export interface components {
         /** @description Register a new user */
         RegisterRequest: {
             /** @description User name (full) */
-            name: string;
+            name: components["schemas"]["UserName"];
             /** @description User email */
             email: string;
             /** @description User password */
             password: string;
+        };
+        /** @enum {string} */
+        StatusCategorySchema: "task_difinition" | "work_waiting" | "work_in_progress" | "blocked" | "test_waiting" | "test_in_progress" | "done" | "canceled";
+        /** @description Status name */
+        StatusName: string;
+        /** @description Status Response */
+        StatusResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            category: components["schemas"]["StatusCategorySchema"];
+            color: components["schemas"]["ColorSchema"];
+            /** Format: uuid */
+            workspace: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
+        };
+        /** @description Tag name */
+        TagName: string;
+        /** @description Tag Response */
+        TagResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            color: components["schemas"]["ColorSchema"];
+            /** Format: uuid */
+            workspace: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
         };
         /** @enum {string} */
         UnauthotizedError: "BadCredentials" | "EmailNotConfirmed" | "MissingToken" | "InvalidToken" | "TokenExpired" | "UserDeleted";
@@ -260,9 +687,24 @@ export interface components {
         UnauthotizedErrorResponse: {
             reason: components["schemas"]["UnauthotizedError"];
         };
+        /** @description Update Status Request */
+        UpdateStatusRequest: {
+            name?: null | components["schemas"]["StatusName"];
+            category?: null | components["schemas"]["StatusCategorySchema"];
+            color?: null | components["schemas"]["ColorSchema"];
+        };
+        /** @description Update Tag Request */
+        UpdateTagRequest: {
+            name?: null | components["schemas"]["TagName"];
+            color?: null | components["schemas"]["ColorSchema"];
+        };
         /** @description Update User */
         UpdateUserRequest: {
-            name: string;
+            name: components["schemas"]["UserName"];
+        };
+        /** @description Update Workspace Request */
+        UpdateWorkspaceRequest: {
+            name: components["schemas"]["WorkspaceName"];
         };
         UploadAvatar: {
             /**
@@ -271,6 +713,24 @@ export interface components {
              */
             avatar: string;
         };
+        /** @description User invite */
+        UserInviteResponse: {
+            /** Format: uuid */
+            workspace_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description User list item */
+        UserListItemResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+        };
+        /** @description User name */
+        UserName: string;
         /** @description User */
         UserResponse: {
             /** Format: uuid */
@@ -287,40 +747,62 @@ export interface components {
             deleted_at?: string | null;
         };
         ValidationErrorKind: {
-            value: number;
-            /** @enum {string} */
-            type: "MinLength";
-        } | {
-            value: number;
-            /** @enum {string} */
-            type: "MaxLength";
-        } | {
-            value: {
-                min: number;
-                max: number;
+            kind: {
+                field: string;
+                kind: components["schemas"]["FieldValidationErrorKind"];
             };
             /** @enum {string} */
-            type: "Length";
+            type: "Field";
         } | {
+            kind: string;
             /** @enum {string} */
-            type: "Email";
-        } | {
-            /** @enum {string} */
-            type: "Url";
-        };
-        /** @description Validation Error */
-        ValidationErrorNamed: {
-            field: string;
-            reason: components["schemas"]["ValidationErrorKind"];
-        };
-        /** @description Validation Error */
-        ValidationErrorResponse: {
-            errors: components["schemas"]["ValidationErrorNamed"][];
+            type: "Body";
         };
         /** @description Verify Email Response */
         VerifyEmailResponse: {
             /** @description Status */
             status: string;
+        };
+        /** @description Workspace invite */
+        WorkspaceInviteResponse: {
+            /** Format: uuid */
+            user_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description Workspace name */
+        WorkspaceName: string;
+        /** @description Workspace Response */
+        WorkspaceResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            admin: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
+        };
+        /** @description Workspace Response */
+        WorkspaceWithStatusesAndTagsResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: uuid */
+            admin: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            deleted_at?: string | null;
+            statuses: components["schemas"]["StatusResponse"][];
+            tags: components["schemas"]["TagResponse"][];
         };
     };
     responses: never;
@@ -330,7 +812,17 @@ export interface components {
     pathItems: never;
 }
 export type ApiErrorResponse = components['schemas']['ApiErrorResponse'];
+export type BadRequestError = components['schemas']['BadRequestError'];
+export type BadRequestErrorResponse = components['schemas']['BadRequestErrorResponse'];
+export type ChangeAdminRequest = components['schemas']['ChangeAdminRequest'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
+export type ColorSchema = components['schemas']['ColorSchema'];
+export type CreateInviteRequest = components['schemas']['CreateInviteRequest'];
+export type CreateStatusRequest = components['schemas']['CreateStatusRequest'];
+export type CreateTagRequest = components['schemas']['CreateTagRequest'];
+export type CreateWorkspaceRequest = components['schemas']['CreateWorkspaceRequest'];
+export type DeleteInviteRequest = components['schemas']['DeleteInviteRequest'];
+export type FieldValidationErrorKind = components['schemas']['FieldValidationErrorKind'];
 export type ForbiddenError = components['schemas']['ForbiddenError'];
 export type ForbiddenErrorResponse = components['schemas']['ForbiddenErrorResponse'];
 export type LoginRequest = components['schemas']['LoginRequest'];
@@ -338,15 +830,28 @@ export type LoginResponse = components['schemas']['LoginResponse'];
 export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 export type RefreshTokenResponse = components['schemas']['RefreshTokenResponse'];
 export type RegisterRequest = components['schemas']['RegisterRequest'];
+export type StatusCategorySchema = components['schemas']['StatusCategorySchema'];
+export type StatusName = components['schemas']['StatusName'];
+export type StatusResponse = components['schemas']['StatusResponse'];
+export type TagName = components['schemas']['TagName'];
+export type TagResponse = components['schemas']['TagResponse'];
 export type UnauthotizedError = components['schemas']['UnauthotizedError'];
 export type UnauthotizedErrorResponse = components['schemas']['UnauthotizedErrorResponse'];
+export type UpdateStatusRequest = components['schemas']['UpdateStatusRequest'];
+export type UpdateTagRequest = components['schemas']['UpdateTagRequest'];
 export type UpdateUserRequest = components['schemas']['UpdateUserRequest'];
+export type UpdateWorkspaceRequest = components['schemas']['UpdateWorkspaceRequest'];
 export type UploadAvatar = components['schemas']['UploadAvatar'];
+export type UserInviteResponse = components['schemas']['UserInviteResponse'];
+export type UserListItemResponse = components['schemas']['UserListItemResponse'];
+export type UserName = components['schemas']['UserName'];
 export type UserResponse = components['schemas']['UserResponse'];
 export type ValidationErrorKind = components['schemas']['ValidationErrorKind'];
-export type ValidationErrorNamed = components['schemas']['ValidationErrorNamed'];
-export type ValidationErrorResponse = components['schemas']['ValidationErrorResponse'];
 export type VerifyEmailResponse = components['schemas']['VerifyEmailResponse'];
+export type WorkspaceInviteResponse = components['schemas']['WorkspaceInviteResponse'];
+export type WorkspaceName = components['schemas']['WorkspaceName'];
+export type WorkspaceResponse = components['schemas']['WorkspaceResponse'];
+export type WorkspaceWithStatusesAndTagsResponse = components['schemas']['WorkspaceWithStatusesAndTagsResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
     login: {
@@ -443,7 +948,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ValidationErrorResponse"];
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
                 };
             };
         };
@@ -591,6 +1096,68 @@ export interface operations {
             };
         };
     };
+    get_invitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserInviteResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+        };
+    };
+    search_users: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                limit?: number | null;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserListItemResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+        };
+    };
     get_me: {
         parameters: {
             query?: never;
@@ -714,6 +1281,1016 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UnauthotizedErrorResponse"];
                 };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorkspaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceWithStatusesAndTagsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorkspaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    upload_workspace_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadAvatar"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_workspace_avatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+        };
+    };
+    change_admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeAdminRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInviteResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_workspace_invitations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInviteResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+        };
+    };
+    get_users_for_invite: {
+        parameters: {
+            query?: {
+                search?: string | null;
+                limit?: number | null;
+                offset?: number | null;
+            };
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserListItemResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnauthotizedErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForbiddenErrorResponse"];
+                };
+            };
+        };
+    };
+    create_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_statuses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Status ID */
+                status_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Status ID */
+                status_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Status ID */
+                status_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Tag ID */
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Tag ID */
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_tag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Workspace ID */
+                workspace_id: string;
+                /** @description Tag ID */
+                tag_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTagRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BadRequestErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

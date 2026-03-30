@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ImagePlus, X } from 'lucide-vue-next'
+import { CircleAlert, ImagePlus, X } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -19,82 +20,49 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  areasStore,
-  MOCK_TEMPLATES,
-  type Status,
-  type StatusCategory,
-  type Tag,
-  type Template,
-} from '@/app/areas/areas-store'
+import { areasStore } from '@/app/areas/areas-store'
+import type { ColorSchema, StatusCategorySchema } from '@/api/generated/schema'
+import { COLOR_MAP, COLOR_LIST, DEFAULT_COLOR } from '@/lib/colors'
+import { STATUS_CATEGORY_LIST } from '@/lib/status-categories'
 import { areaCreateSchema, getFieldErrors, type AreaCreateFormValues } from '@/lib/validation/areas'
 import type { FieldErrors } from '@/lib/validation/auth'
-
-type ColorPreset = {
-  name: string
-  value: string
-}
+import { getApiErrorMessage } from '@/api'
 
 type StatusDraft = {
-  label: string
-  color: string
-  category: StatusCategory | ''
+  name: string
+  color: ColorSchema
+  category: StatusCategorySchema | ''
 }
 
 type TagDraft = {
-  label: string
-  color: string
+  name: string
+  color: ColorSchema
 }
-
-const STATUS_CATEGORIES: StatusCategory[] = ['Новая', 'Отменена', 'В работе', 'На тестировании']
-
-const COLOR_PRESETS: ColorPreset[] = [
-  { name: 'Красный', value: '#EF4444' },
-  { name: 'Оранжевый', value: '#F97316' },
-  { name: 'Желтый', value: '#EAB308' },
-  { name: 'Зеленый', value: '#22C55E' },
-  { name: 'Бирюзовый', value: '#06B6D4' },
-  { name: 'Синий', value: '#3B82F6' },
-  { name: 'Фиолетовый', value: '#8B5CF6' },
-  { name: 'Розовый', value: '#EC4899' },
-]
-
-const DEFAULT_COLOR = '#EF4444'
 
 const router = useRouter()
 
 const name = ref('')
 const avatarObjectUrl = ref<string | null>(null)
-const statuses = ref<Status[]>([])
-const tags = ref<Tag[]>([])
-const availableTemplates = ref<Template[]>([...MOCK_TEMPLATES])
-const selectedTemplateId = ref<string | undefined>(undefined)
-const templateDialogOpen = ref(false)
-const newTemplateName = ref('')
+const statuses = ref<{ name: string; color: ColorSchema; category: StatusCategorySchema }[]>([])
+const tags = ref<{ name: string; color: ColorSchema }[]>([])
 const statusDialogOpen = ref(false)
 const tagDialogOpen = ref(false)
-const editingStatusId = ref<string | null>(null)
-const editingTagId = ref<string | null>(null)
+const editingStatusId = ref<number | null>(null)
+const editingTagId = ref<number | null>(null)
 const statusDraft = ref<StatusDraft>(createStatusDraft())
 const tagDraft = ref<TagDraft>(createTagDraft())
 const fieldErrors = ref<FieldErrors<AreaCreateFormValues>>({})
+const formError = ref<string | null>(null)
 const isLoading = ref(false)
 
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 function createStatusDraft(): StatusDraft {
-  return {
-    label: '',
-    color: DEFAULT_COLOR,
-    category: '',
-  }
+  return { name: '', color: DEFAULT_COLOR, category: '' }
 }
 
 function createTagDraft(): TagDraft {
-  return {
-    label: '',
-    color: DEFAULT_COLOR,
-  }
+  return { name: '', color: DEFAULT_COLOR }
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -107,11 +75,12 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-function getBadgeStyles(color: string): Record<string, string> {
+function getBadgeStyles(color: ColorSchema): Record<string, string> {
+  const hex = COLOR_MAP[color].hex
   return {
-    backgroundColor: hexToRgba(color, 0.14),
-    borderColor: hexToRgba(color, 0.28),
-    color,
+    backgroundColor: hexToRgba(hex, 0.14),
+    borderColor: hexToRgba(hex, 0.28),
+    color: hex,
   }
 }
 
@@ -124,12 +93,12 @@ function handleAvatarChange(e: Event): void {
   avatarObjectUrl.value = URL.createObjectURL(file)
 }
 
-function removeStatus(id: string): void {
-  statuses.value = statuses.value.filter((status) => status.id !== id)
+function removeStatus(index: number): void {
+  statuses.value.splice(index, 1)
 }
 
-function removeTag(id: string): void {
-  tags.value = tags.value.filter((tag) => tag.id !== id)
+function removeTag(index: number): void {
+  tags.value.splice(index, 1)
 }
 
 function openStatusDialog(): void {
@@ -144,46 +113,37 @@ function openTagDialog(): void {
   tagDialogOpen.value = true
 }
 
-function openStatusEditDialog(status: Status): void {
-  editingStatusId.value = status.id
-  statusDraft.value = {
-    label: status.label,
-    color: status.color,
-    category: status.category,
-  }
+function openStatusEditDialog(index: number): void {
+  const status = statuses.value[index]
+  if (!status) return
+  editingStatusId.value = index
+  statusDraft.value = { name: status.name, color: status.color, category: status.category }
   statusDialogOpen.value = true
 }
 
-function openTagEditDialog(tag: Tag): void {
-  editingTagId.value = tag.id
-  tagDraft.value = {
-    label: tag.label,
-    color: tag.color,
-  }
+function openTagEditDialog(index: number): void {
+  const tag = tags.value[index]
+  if (!tag) return
+  editingTagId.value = index
+  tagDraft.value = { name: tag.name, color: tag.color }
   tagDialogOpen.value = true
 }
 
 function saveStatus(): void {
-  const label = statusDraft.value.label.trim()
+  const statusName = statusDraft.value.name.trim()
   const category = statusDraft.value.category
 
-  if (!label || !category) return
+  if (!statusName || !category) return
 
-  if (editingStatusId.value) {
-    statuses.value = statuses.value.map((status) =>
-      status.id === editingStatusId.value
-        ? {
-            ...status,
-            label,
-            color: statusDraft.value.color,
-            category,
-          }
-        : status,
-    )
+  if (editingStatusId.value !== null) {
+    statuses.value[editingStatusId.value] = {
+      name: statusName,
+      color: statusDraft.value.color,
+      category,
+    }
   } else {
     statuses.value.push({
-      id: crypto.randomUUID(),
-      label,
+      name: statusName,
       color: statusDraft.value.color,
       category,
     })
@@ -195,23 +155,17 @@ function saveStatus(): void {
 }
 
 function saveTag(): void {
-  const label = tagDraft.value.label.trim()
-  if (!label) return
+  const tagName = tagDraft.value.name.trim()
+  if (!tagName) return
 
-  if (editingTagId.value) {
-    tags.value = tags.value.map((tag) =>
-      tag.id === editingTagId.value
-        ? {
-            ...tag,
-            label,
-            color: tagDraft.value.color,
-          }
-        : tag,
-    )
+  if (editingTagId.value !== null) {
+    tags.value[editingTagId.value] = {
+      name: tagName,
+      color: tagDraft.value.color,
+    }
   } else {
     tags.value.push({
-      id: crypto.randomUUID(),
-      label,
+      name: tagName,
       color: tagDraft.value.color,
     })
   }
@@ -220,18 +174,9 @@ function saveTag(): void {
   tagDialogOpen.value = false
 }
 
-function handleCreateTemplate(): void {
-  const tplName = newTemplateName.value.trim()
-  if (!tplName) return
-  const id = crypto.randomUUID()
-  availableTemplates.value.push({ id, name: tplName })
-  selectedTemplateId.value = id
-  newTemplateName.value = ''
-  templateDialogOpen.value = false
-}
-
 async function handleSubmit(): Promise<void> {
   fieldErrors.value = {}
+  formError.value = null
 
   const result = areaCreateSchema.safeParse({
     name: name.value,
@@ -246,15 +191,23 @@ async function handleSubmit(): Promise<void> {
 
   isLoading.value = true
   try {
-    areasStore.addArea({
-      id: crypto.randomUUID(),
+    await areasStore.createWorkspace({
       name: result.data.name,
-      avatarUrl: avatarObjectUrl.value,
-      statuses: result.data.statuses,
-      tags: result.data.tags,
-      templateId: selectedTemplateId.value ?? null,
+      statuses: result.data.statuses.map((s) => ({
+        name: s.name,
+        color: s.color,
+        category: s.category,
+      })),
+      tags: result.data.tags.map((t) => ({
+        name: t.name,
+        color: t.color,
+      })),
     })
     await router.push({ name: 'home' })
+  } catch (err: unknown) {
+    formError.value = getApiErrorMessage(err, {
+      validation: 'Проверьте корректность введённых данных',
+    })
   } finally {
     isLoading.value = false
   }
@@ -271,6 +224,11 @@ onBeforeUnmount(() => {
   <div class="min-h-screen bg-muted px-4 pt-6 pb-4 sm:px-6 sm:pt-10">
     <section class="mx-auto w-full max-w-2xl rounded-2xl border bg-card px-4 py-6 shadow-sm sm:px-6 sm:py-7">
       <div class="flex w-full flex-col gap-6">
+      <Alert v-if="formError" variant="destructive">
+        <CircleAlert />
+        <AlertDescription>{{ formError }}</AlertDescription>
+      </Alert>
+
       <div class="text-left">
         <h1 class="text-3xl font-semibold tracking-tight">Создать область</h1>
         <p class="mt-2 text-sm text-muted-foreground">Настройте рабочую область под свои задачи</p>
@@ -325,23 +283,23 @@ onBeforeUnmount(() => {
             </div>
             <div v-if="statuses.length" class="flex flex-wrap gap-2">
               <span
-                v-for="status in statuses"
-                :key="status.id"
+                v-for="(status, index) in statuses"
+                :key="index"
                 class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-opacity hover:opacity-85"
                 :style="getBadgeStyles(status.color)"
                 role="button"
                 tabindex="0"
-                :aria-label="`Редактировать статус ${status.label}`"
-                @click="openStatusEditDialog(status)"
-                @keydown.enter.prevent="openStatusEditDialog(status)"
-                @keydown.space.prevent="openStatusEditDialog(status)"
+                :aria-label="`Редактировать статус ${status.name}`"
+                @click="openStatusEditDialog(index)"
+                @keydown.enter.prevent="openStatusEditDialog(index)"
+                @keydown.space.prevent="openStatusEditDialog(index)"
               >
-                {{ status.label }}
+                {{ status.name }}
                 <button
                   type="button"
                   class="flex size-4 items-center justify-center rounded-full transition-colors hover:bg-black/10"
-                  :aria-label="`Удалить статус ${status.label}`"
-                  @click.stop="removeStatus(status.id)"
+                  :aria-label="`Удалить статус ${status.name}`"
+                  @click.stop="removeStatus(index)"
                 >
                   <X class="size-3" />
                 </button>
@@ -360,23 +318,23 @@ onBeforeUnmount(() => {
             </div>
             <div v-if="tags.length" class="flex flex-wrap gap-2">
               <span
-                v-for="tag in tags"
-                :key="tag.id"
+                v-for="(tag, index) in tags"
+                :key="index"
                 class="inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-opacity hover:opacity-85"
                 :style="getBadgeStyles(tag.color)"
                 role="button"
                 tabindex="0"
-                :aria-label="`Редактировать тэг ${tag.label}`"
-                @click="openTagEditDialog(tag)"
-                @keydown.enter.prevent="openTagEditDialog(tag)"
-                @keydown.space.prevent="openTagEditDialog(tag)"
+                :aria-label="`Редактировать тэг ${tag.name}`"
+                @click="openTagEditDialog(index)"
+                @keydown.enter.prevent="openTagEditDialog(index)"
+                @keydown.space.prevent="openTagEditDialog(index)"
               >
-                {{ tag.label }}
+                {{ tag.name }}
                 <button
                   type="button"
                   class="flex size-4 items-center justify-center rounded-full transition-colors hover:bg-black/10"
-                  :aria-label="`Удалить тэг ${tag.label}`"
-                  @click.stop="removeTag(tag.id)"
+                  :aria-label="`Удалить тэг ${tag.name}`"
+                  @click.stop="removeTag(index)"
                 >
                   <X class="size-3" />
                 </button>
@@ -387,30 +345,6 @@ onBeforeUnmount(() => {
               <FieldError :errors="fieldErrors.tags ? [fieldErrors.tags] : []" />
             </div>
           </div>
-
-          <!-- <div class="flex flex-col gap-3">
-            <FieldLabel>Шаблон</FieldLabel>
-            <div class="flex items-center gap-3">
-              <Select v-model="selectedTemplateId">
-                <SelectTrigger class="flex-1">
-                  <SelectValue placeholder="Выберите шаблон" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="tpl in availableTemplates" :key="tpl.id" :value="tpl.id">
-                    {{ tpl.name }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="ghost"
-                class="shrink-0"
-                @click="templateDialogOpen = true"
-              >
-                Создать шаблон
-              </Button>
-            </div>
-          </div> -->
 
           <div class="flex justify-end pt-1">
             <Button
@@ -430,21 +364,21 @@ onBeforeUnmount(() => {
   <Dialog v-model:open="statusDialogOpen">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ editingStatusId ? 'Редактировать статус' : 'Добавить статус' }}</DialogTitle>
+        <DialogTitle>{{ editingStatusId !== null ? 'Редактировать статус' : 'Добавить статус' }}</DialogTitle>
       </DialogHeader>
       <div class="grid gap-4 py-2">
         <div class="grid gap-2">
           <FieldLabel>Цвет</FieldLabel>
           <div class="flex flex-wrap gap-2">
             <button
-              v-for="preset in COLOR_PRESETS"
-              :key="preset.value"
+              v-for="[colorKey, colorInfo] in COLOR_LIST"
+              :key="colorKey"
               type="button"
               class="size-8 rounded-full border-2 border-white shadow-sm ring-offset-2 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              :class="statusDraft.color === preset.value ? 'ring-2 ring-foreground' : 'ring-1 ring-border'"
-              :style="{ backgroundColor: preset.value }"
-              :aria-label="`Выбрать цвет ${preset.name}`"
-              @click="statusDraft.color = preset.value"
+              :class="statusDraft.color === colorKey ? 'ring-2 ring-foreground' : 'ring-1 ring-border'"
+              :style="{ backgroundColor: colorInfo.hex }"
+              :aria-label="`Выбрать цвет ${colorInfo.label}`"
+              @click="statusDraft.color = colorKey"
             />
           </div>
         </div>
@@ -453,7 +387,7 @@ onBeforeUnmount(() => {
           <FieldLabel for="status-name">Название статуса</FieldLabel>
           <Input
             id="status-name"
-            v-model="statusDraft.label"
+            v-model="statusDraft.name"
             placeholder="Например, В очереди"
             @keydown.enter.prevent="saveStatus"
           />
@@ -467,11 +401,11 @@ onBeforeUnmount(() => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem
-                v-for="category in STATUS_CATEGORIES"
-                :key="category"
-                :value="category"
+                v-for="[categoryKey, categoryLabel] in STATUS_CATEGORY_LIST"
+                :key="categoryKey"
+                :value="categoryKey"
               >
-                {{ category }}
+                {{ categoryLabel }}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -480,10 +414,10 @@ onBeforeUnmount(() => {
       <DialogFooter>
         <Button
           type="button"
-          :disabled="!statusDraft.label.trim() || !statusDraft.category"
+          :disabled="!statusDraft.name.trim() || !statusDraft.category"
           @click="saveStatus"
         >
-          {{ editingStatusId ? 'Сохранить' : 'Добавить' }}
+          {{ editingStatusId !== null ? 'Сохранить' : 'Добавить' }}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -492,21 +426,21 @@ onBeforeUnmount(() => {
   <Dialog v-model:open="tagDialogOpen">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ editingTagId ? 'Редактировать тэг' : 'Добавить тэг' }}</DialogTitle>
+        <DialogTitle>{{ editingTagId !== null ? 'Редактировать тэг' : 'Добавить тэг' }}</DialogTitle>
       </DialogHeader>
       <div class="grid gap-4 py-2">
         <div class="grid gap-2">
           <FieldLabel>Цвет</FieldLabel>
           <div class="flex flex-wrap gap-2">
             <button
-              v-for="preset in COLOR_PRESETS"
-              :key="preset.value"
+              v-for="[colorKey, colorInfo] in COLOR_LIST"
+              :key="colorKey"
               type="button"
               class="size-8 rounded-full border-2 border-white shadow-sm ring-offset-2 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-              :class="tagDraft.color === preset.value ? 'ring-2 ring-foreground' : 'ring-1 ring-border'"
-              :style="{ backgroundColor: preset.value }"
-              :aria-label="`Выбрать цвет ${preset.name}`"
-              @click="tagDraft.color = preset.value"
+              :class="tagDraft.color === colorKey ? 'ring-2 ring-foreground' : 'ring-1 ring-border'"
+              :style="{ backgroundColor: colorInfo.hex }"
+              :aria-label="`Выбрать цвет ${colorInfo.label}`"
+              @click="tagDraft.color = colorKey"
             />
           </div>
         </div>
@@ -515,35 +449,15 @@ onBeforeUnmount(() => {
           <FieldLabel for="tag-name">Название тэга</FieldLabel>
           <Input
             id="tag-name"
-            v-model="tagDraft.label"
+            v-model="tagDraft.name"
             placeholder="Например, backend"
             @keydown.enter.prevent="saveTag"
           />
         </Field>
       </div>
       <DialogFooter>
-        <Button type="button" :disabled="!tagDraft.label.trim()" @click="saveTag">
-          {{ editingTagId ? 'Сохранить' : 'Добавить' }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-
-  <Dialog v-model:open="templateDialogOpen">
-    <DialogContent class="sm:max-w-sm">
-      <DialogHeader>
-        <DialogTitle>Новый шаблон</DialogTitle>
-      </DialogHeader>
-      <div class="py-2">
-        <Input
-          v-model="newTemplateName"
-          placeholder="Название шаблона"
-          @keydown.enter.prevent="handleCreateTemplate"
-        />
-      </div>
-      <DialogFooter>
-        <Button type="button" :disabled="!newTemplateName.trim()" @click="handleCreateTemplate">
-          Создать
+        <Button type="button" :disabled="!tagDraft.name.trim()" @click="saveTag">
+          {{ editingTagId !== null ? 'Сохранить' : 'Добавить' }}
         </Button>
       </DialogFooter>
     </DialogContent>

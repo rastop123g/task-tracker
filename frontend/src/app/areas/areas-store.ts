@@ -1,33 +1,37 @@
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
+import type {
+  CreateWorkspaceRequest,
+  WorkspaceWithStatusesAndTagsResponse,
+} from '@/api/generated/schema'
+import { api } from '@/api'
 
-export type StatusCategory = 'Новая' | 'Отменена' | 'В работе' | 'На тестировании'
-export type Status = { id: string; label: string; color: string; category: StatusCategory }
-export type Tag = { id: string; label: string; color: string }
-export type Template = { id: string; name: string }
-export type Area = {
-  id: string
-  name: string
-  avatarUrl: string | null
-  statuses: Status[]
-  tags: Tag[]
-  templateId: string | null
+const workspaces = ref<WorkspaceWithStatusesAndTagsResponse[]>([])
+const current = shallowRef<WorkspaceWithStatusesAndTagsResponse | null>(null)
+const isEmpty = computed(() => workspaces.value.length === 0)
+
+async function createWorkspace(
+  payload: CreateWorkspaceRequest,
+): Promise<WorkspaceWithStatusesAndTagsResponse> {
+  const ws = await api.workspace.create(payload)
+  workspaces.value.push(ws)
+  current.value = ws
+  return ws
 }
 
-const areas = ref<Area[]>([])
-const isEmpty = computed(() => areas.value.length === 0)
-
-function addArea(area: Area): void {
-  areas.value.push(area)
+function setCurrent(ws: WorkspaceWithStatusesAndTagsResponse): void {
+  current.value = ws
 }
 
 function clear(): void {
-  areas.value = []
+  workspaces.value = []
+  current.value = null
 }
 
-export const areasStore = { areas, isEmpty, addArea, clear }
-
-export const MOCK_TEMPLATES: Template[] = [
-  { id: 'kanban', name: 'Kanban' },
-  { id: 'simple', name: 'Simple list' },
-  { id: 'bugs', name: 'Bug tracker' },
-]
+export const areasStore = {
+  workspaces,
+  current,
+  isEmpty,
+  createWorkspace,
+  setCurrent,
+  clear,
+}

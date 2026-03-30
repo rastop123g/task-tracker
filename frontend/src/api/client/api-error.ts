@@ -1,15 +1,15 @@
 import type {
   ApiErrorResponse,
+  BadRequestErrorResponse,
   ForbiddenErrorResponse,
   UnauthotizedErrorResponse,
-  ValidationErrorResponse,
 } from '@/api/generated/schema'
 
 export type BackendErrorPayload =
   | ApiErrorResponse
+  | BadRequestErrorResponse
   | ForbiddenErrorResponse
   | UnauthotizedErrorResponse
-  | ValidationErrorResponse
 
 export type ApiErrorCode = 'network' | 'abort' | 'http'
 
