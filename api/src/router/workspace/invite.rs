@@ -13,7 +13,7 @@ use crate::{
         extractors::{
             auth::UserAuth,
             req_ctx::Ctx,
-            workspace::{WorkspaceFromPath, WorkspaceWithAdmin},
+            workspace::{WorkspaceFromPath, WorkspaceAdmin},
         },
         path_params::WorkspacePathParams,
     },
@@ -43,7 +43,7 @@ pub fn invite_router() -> Router<AppResources> {
 /// Get invitations
 pub async fn get_workspace_invitations(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
 ) -> ApiResult<Json<Vec<WorkspaceInviteResponse>>> {
     let invitations = ctx
         .workspace_invite_service()
@@ -70,7 +70,7 @@ pub async fn get_workspace_invitations(
 /// Invite user to workspace
 pub async fn create_invite(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     Json(req): Json<CreateInviteRequest>,
 ) -> ApiResult<Json<WorkspaceInviteResponse>> {
     let invite = ctx
@@ -99,7 +99,7 @@ pub async fn create_invite(
 /// Delete invite to workspace
 pub async fn delete_invite(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     Json(req): Json<DeleteInviteRequest>,
 ) -> ApiResult<()> {
     ctx.workspace_invite_service()
@@ -125,7 +125,7 @@ pub async fn delete_invite(
 /// Search users
 pub async fn get_users_for_invite(
     ctx: Ctx,
-    w: WorkspaceWithAdmin<WorkspacePathParams>,
+    w: WorkspaceAdmin<WorkspacePathParams>,
     Query(req): Query<SearchUserRequest>,
 ) -> ApiResult<Json<Vec<UserListItemResponse>>> {
     let users = ctx

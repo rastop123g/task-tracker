@@ -12,7 +12,7 @@ use crate::{
             app_json::AppJson,
             req_ctx::Ctx,
             tag::TagFromPath,
-            workspace::{WorkspaceMember, WorkspaceWithAdmin},
+            workspace::{WorkspaceMember, WorkspaceAdmin},
         },
         path_params::{TagPathParams, WorkspacePathParams},
     },
@@ -94,7 +94,7 @@ pub async fn get_tag(
 /// Create tag
 pub async fn create_tag(
     ctx: Ctx,
-    wm: WorkspaceWithAdmin<WorkspacePathParams>,
+    wm: WorkspaceAdmin<WorkspacePathParams>,
     AppJson(req): AppJson<CreateTagRequest>,
 ) -> ApiResult<Json<TagResponse>> {
     let tag = ctx
@@ -125,7 +125,7 @@ pub async fn create_tag(
 /// Update tag
 pub async fn update_tag(
     ctx: Ctx,
-    _wa: WorkspaceWithAdmin<TagPathParams>,
+    _wa: WorkspaceAdmin<TagPathParams>,
     t: TagFromPath<TagPathParams>,
     AppJson(req): AppJson<UpdateTagRequest>,
 ) -> ApiResult<Json<TagResponse>> {
@@ -152,7 +152,7 @@ pub async fn update_tag(
 /// Delete tag
 pub async fn delete_tag(
     ctx: Ctx,
-    _wa: WorkspaceWithAdmin<TagPathParams>,
+    _wa: WorkspaceAdmin<TagPathParams>,
     t: TagFromPath<TagPathParams>,
 ) -> ApiResult<Json<TagResponse>> {
     let tag = ctx.tag_service().delete(&t.tag.id).await?;

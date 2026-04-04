@@ -12,7 +12,7 @@ use crate::{
             app_json::AppJson,
             req_ctx::Ctx,
             status::StatusFromPath,
-            workspace::{WorkspaceMember, WorkspaceWithAdmin},
+            workspace::{WorkspaceMember, WorkspaceAdmin},
         },
         path_params::{StatusPathParams, WorkspacePathParams},
     },
@@ -97,7 +97,7 @@ pub async fn get_status(
 /// Create status
 pub async fn create_status(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     AppJson(req): AppJson<CreateStatusRequest>,
 ) -> ApiResult<Json<StatusResponse>> {
     let status = ctx
@@ -128,7 +128,7 @@ pub async fn create_status(
 /// Update status
 pub async fn update_status(
     ctx: Ctx,
-    _wa: WorkspaceWithAdmin<StatusPathParams>,
+    _wa: WorkspaceAdmin<StatusPathParams>,
     s: StatusFromPath<StatusPathParams>,
     AppJson(req): AppJson<UpdateStatusRequest>,
 ) -> ApiResult<Json<StatusResponse>> {
@@ -158,7 +158,7 @@ pub async fn update_status(
 /// Delete status
 pub async fn delete_status(
     ctx: Ctx,
-    _wa: WorkspaceWithAdmin<StatusPathParams>,
+    _wa: WorkspaceAdmin<StatusPathParams>,
     s: StatusFromPath<StatusPathParams>,
 ) -> ApiResult<()> {
     ctx.workspace_statuses_service()

@@ -4,3 +4,4 @@ pub mod req_ctx;
 pub mod status;
 pub mod tag;
 pub mod workspace;
+pub mod member;

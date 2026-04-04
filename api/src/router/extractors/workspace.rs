@@ -60,7 +60,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct WorkspaceWithAdmin<P> {
+pub struct WorkspaceAdmin<P> {
     pub workspace: WorkspaceEntity,
     pub admin: UserEntity,
     _phantom: std::marker::PhantomData<P>,
@@ -73,7 +73,7 @@ pub struct WorkspaceMember<P> {
     _phantom: std::marker::PhantomData<P>,
 }
 
-impl<S, P> FromRequestParts<S> for WorkspaceWithAdmin<P>
+impl<S, P> FromRequestParts<S> for WorkspaceAdmin<P>
 where
     S: Send + Sync,
     AppResources: FromRef<S>,
@@ -88,7 +88,7 @@ where
         if workspace.admin != user.id {
             return Err(ApiError::Forbidden(ForbiddenError::WorkspaceAdminOnly));
         }
-        Ok(WorkspaceWithAdmin {
+        Ok(WorkspaceAdmin {
             workspace,
             admin: user,
             _phantom: std::marker::PhantomData,

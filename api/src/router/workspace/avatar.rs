@@ -19,7 +19,7 @@ use crate::{
         workspace::WorkspaceResponse,
     },
     router::{
-        avatar::UploadAvatar, extractors::workspace::WorkspaceWithAdmin,
+        avatar::UploadAvatar, extractors::workspace::WorkspaceAdmin,
         path_params::WorkspacePathParams,
     },
 };
@@ -53,7 +53,7 @@ pub fn workspace_avatar_router() -> Router<crate::app_resources::AppResources> {
 /// Upload workspace avatar
 async fn upload_workspace_avatar(
     State(app): State<AppResources>,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     req: Multipart,
 ) -> ApiResult<Json<WorkspaceResponse>> {
     let mut workspace = wa.workspace;
@@ -99,7 +99,7 @@ async fn upload_workspace_avatar(
 /// Delete workspace avatar
 async fn delete_workspace_avatar(
     State(app): State<AppResources>,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
 ) -> ApiResult<Json<WorkspaceResponse>> {
     let workspace = wa.workspace;
     if let Some(ref avatar) = workspace.avatar {

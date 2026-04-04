@@ -17,12 +17,11 @@ use crate::{
             app_json::AppJson,
             auth::UserAuth,
             req_ctx::Ctx,
-            workspace::{WorkspaceMember, WorkspaceWithAdmin},
+            workspace::{WorkspaceMember, WorkspaceAdmin},
         },
         path_params::WorkspacePathParams,
         workspace::{
-            avatar::workspace_avatar_router, invite::invite_router, statuses::statuses_router,
-            tags::tags_router,
+            avatar::workspace_avatar_router, invite::invite_router, members::members_router, statuses::statuses_router, tags::tags_router
         },
     },
 };
@@ -31,6 +30,7 @@ pub mod avatar;
 pub mod invite;
 pub mod statuses;
 pub mod tags;
+pub mod members;
 
 pub fn workspace_router() -> Router<AppResources> {
     Router::new()
@@ -45,6 +45,7 @@ pub fn workspace_router() -> Router<AppResources> {
         .nest("/{workspace_id}/invite", invite_router())
         .nest("/{workspace_id}/status", statuses_router())
         .nest("/{workspace_id}/tag", tags_router())
+        .nest("/{workspace_id}/member", members_router())
 }
 
 #[utoipa::path(
@@ -105,7 +106,7 @@ pub async fn create(
 /// Update workspace
 pub async fn update(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     AppJson(req): AppJson<UpdateWorkspaceRequest>,
 ) -> ApiResult<Json<WorkspaceResponse>> {
     let workspace = ctx
@@ -129,7 +130,7 @@ pub async fn update(
 /// Change workspace admin
 pub async fn change_admin(
     ctx: Ctx,
-    wa: WorkspaceWithAdmin<WorkspacePathParams>,
+    wa: WorkspaceAdmin<WorkspacePathParams>,
     AppJson(req): AppJson<ChangeAdminRequest>,
 ) -> ApiResult<Json<WorkspaceResponse>> {
     let workspace = ctx
@@ -143,6 +144,7 @@ use self::avatar::WorkspaceAvatarApiDoc;
 use self::invite::WorkspaceInviteApiDoc;
 use self::statuses::StatusesApiDoc;
 use self::tags::TagsApiDoc;
+use self::members::WorkspaceMemberApiDoc;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -154,6 +156,7 @@ use self::tags::TagsApiDoc;
         (path = "/{workspace_id}/invite", api = WorkspaceInviteApiDoc),
         (path = "/{workspace_id}/status", api = StatusesApiDoc),
         (path = "/{workspace_id}/tag", api = TagsApiDoc),
+        (path = "/{workspace_id}/member", api = WorkspaceMemberApiDoc),
     ),
 )]
 pub struct WorkspaceApiDoc;
