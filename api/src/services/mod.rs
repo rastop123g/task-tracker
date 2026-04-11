@@ -5,3 +5,4 @@ pub mod workspace_invite_service;
 pub mod workspace_member_service;
 pub mod workspace_service;
 pub mod workspace_statuses_service;
+pub mod ws_registry_service;

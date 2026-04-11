@@ -5,13 +5,10 @@ use axum::{
 
 use crate::{app_resources::AppResources, error::ApiError};
 
-#[derive(Debug, Clone, Default)]
-pub struct ReqState {}
-
+//TODO: Контекст вообще не нужен надо бы убрать
 #[derive(Debug, Clone)]
 pub struct Ctx {
     pub app: AppResources,
-    // pub state: Arc<Mutex<ReqState>>,
 }
 
 impl<S> FromRequestParts<S> for Ctx
@@ -32,7 +29,6 @@ where
 
         let ctx = Ctx {
             app: app.clone(),
-            // state: Arc::new(Mutex::new(ReqState::default())),
         };
         parts.extensions.insert(ctx.clone());
         Ok(ctx)
@@ -40,6 +36,10 @@ where
 }
 
 impl Ctx {
+    pub fn new(app: AppResources) -> Self {
+        Self { app }
+    }
+
     pub fn user_service(&self) -> crate::services::user_service::UserService {
         crate::services::user_service::UserService::new(self.clone())
     }
@@ -72,5 +72,11 @@ impl Ctx {
 
     pub fn tag_service(&self) -> crate::services::tag_service::TagService {
         crate::services::tag_service::TagService::new(self.clone())
+    }
+
+    pub fn ws_registry_service(
+        &self,
+    ) -> crate::services::ws_registry_service::WsRegistryService {
+        crate::services::ws_registry_service::WsRegistryService::new(self.clone())
     }
 }

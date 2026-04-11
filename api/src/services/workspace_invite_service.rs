@@ -111,6 +111,9 @@ impl WorkspaceInviteService {
             DBWorkspaceInvite::delete(workspace_id, user_id, &mut conn).await?;
             DBWorkspaceMember::create(user_id, workspace_id, &mut conn).await?;
             conn.commit().await?;
+            self.ctx.ws_registry_service()
+                .add_workspace_member(workspace_id, user_id)
+                .await?;
             Ok(())
         } else {
             Err(ApiError::NotFound("workspace_invite".to_string()))

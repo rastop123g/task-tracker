@@ -7,6 +7,7 @@ pub mod avatar;
 pub mod extractors;
 pub mod path_params;
 pub mod user;
+pub mod ws;
 pub mod workspace;
 
 pub fn app_router(res: AppResources) -> Router<AppResources> {
@@ -17,6 +18,7 @@ pub fn app_router(res: AppResources) -> Router<AppResources> {
 
 pub fn apiv1_router(res: AppResources) -> Router<AppResources> {
     Router::new()
+        .route("/ws", axum::routing::get(ws::ws_handler))
         .nest("/auth", auth::auth_router())
         .nest("/avatar", avatar::avatar_router(res))
         .nest("/user", user::user_router())

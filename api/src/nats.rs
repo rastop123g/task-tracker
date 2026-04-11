@@ -44,7 +44,20 @@ pub async fn init_nats_client(config: &crate::config::Config) -> Result<NatsClie
     };
     let client = client?;
     let js = async_nats::jetstream::new(client.clone());
-    // create stream if need
+
+    create_stream(
+        &js,
+        stream::Config {
+            name: "EVENTS".into(),
+            subjects: vec!["events.>".into()],
+            retention: stream::RetentionPolicy::Limits,
+            max_messages: 100_000,
+            max_age: Duration::from_secs(24 * 60 * 60),
+            ..Default::default()
+        },
+    )
+    .await?;
+
     Ok(NatsClients { js, client })
 }
 

@@ -4,7 +4,7 @@ sudo podman run -d --replace --name track-pg -p 5432:5432 -v ~/testdb/trackpg:/v
   -e POSTGRES_DB=task_tracker \
   docker.io/library/postgres
 
-sudo podman run -d --replace --name track-nats -p 4222:4222 -p 8222:8222 -p 6222:6222 docker.io/library/nats
+sudo podman run -d --replace --name track-nats -p 4222:4222 -p 8222:8222 -p 6222:6222 docker.io/library/nats -js
 
 sudo podman run -d --replace --name track-redis -p 6379:6379 docker.io/library/redis
 

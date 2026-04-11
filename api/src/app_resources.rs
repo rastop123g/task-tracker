@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+use crate::{router::extractors::req_ctx::Ctx, websocket::WsSessionMap};
+
+#[derive(Clone, Debug)]
 pub struct AppResources {
     pub db: sqlx::PgPool,
     pub nats: Arc<crate::nats::NatsClient>,
     pub redis: crate::redis::RedisClient,
     pub config: Arc<crate::config::Config>,
     pub s3: aws_sdk_s3::Client,
-    // pub auth_service: crate::services::auth_service::AuthService,
-    // pub user_service: crate::services::user_service::UserService,
-    // pub workspace_service: crate::services::workspace_service::WorkspaceService,
-    // pub workspace_invite_service: crate::services::workspace_invite_service::WorkspaceInviteService,
+    pub ws_sessions: Arc<WsSessionMap>,
 }
 
 impl AppResources {
@@ -22,33 +21,16 @@ impl AppResources {
         s3: aws_sdk_s3::Client,
     ) -> Self {
         Self {
-            // DI
-            // auth_service: crate::services::auth_service::AuthService::new(
-            //     db.clone(),
-            //     redis.clone(),
-            //     config.clone(),
-            // ),
-            // user_service: crate::services::user_service::UserService::new(
-            //     db.clone(),
-            //     redis.clone(),
-            //     config.clone(),
-            // ),
-            // workspace_service: crate::services::workspace_service::WorkspaceService::new(
-            //     db.clone(),
-            //     redis.clone(),
-            //     config.clone(),
-            // ),
-            // workspace_invite_service:
-            //     crate::services::workspace_invite_service::WorkspaceInviteService::new(
-            //         db.clone(),
-            //         redis.clone(),
-            //         config.clone(),
-            //     ),
+            ws_sessions: WsSessionMap::new(),
             db,
             nats,
             redis,
             config,
             s3,
         }
+    }
+
+    pub fn ctx(self) -> Ctx {
+        Ctx::new(self)
     }
 }

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 async-nats = "0.46.0"
-axum = { version = "0.8.8", features = ["json", "multipart", "query", "form", "macros"] }
+axum = { version = "0.8.8", features = ["json", "multipart", "query", "form", "macros", "ws"] }
 axum-extra = "0.12.5"
 axum-server = { version = "0.8.0", features = ["tokio-rustls"] }
 bb8 = "0.9.1"
@@ -44,5 +44,6 @@ nanoid = "0.4.0"
 utoipa = { version = "5.4.0", features = ["axum_extras", "chrono", "uuid", "preserve_order"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 async-trait = "0.1.89"
+dashmap = "6.1.0"
 detrim = "0.1.6"
 tower-http = { version = "0.6.8", features = ["trace"] }

@@ -42,6 +42,25 @@ impl DBWorkspace {
         Ok(res)
     }
 
+    pub async fn get_by_user_id(
+        user_id: &Uuid,
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Vec<DBWorkspace>> {
+        let res = sqlx::query_as!(
+            DBWorkspace,
+            r#"
+                SELECT w.*
+                FROM app_workspace w
+                JOIN workspace_member wm ON wm.workspace_id = w.id
+                WHERE wm.user_id = $1 AND wm.deleted_at IS NULL
+            "#,
+            user_id
+        )
+        .fetch_all(db)
+        .await?;
+        Ok(res)
+    }
+
     pub async fn delete(id: &Uuid, db: &mut sqlx::PgConnection) -> ApiResult<bool> {
         let res = sqlx::query!(
             r#"

@@ -69,7 +69,13 @@ async fn serve() -> anyhow::Result<()> {
     let s3 = aws_sdk_s3::Client::from_conf(s3_config);
     let nats = Arc::new(nats);
 
-    let res = AppResources::new(db, nats, redis, config.clone(), s3);
+    let res = AppResources::new(db, nats.clone(), redis, config.clone(), s3);
+
+    tokio::spawn(api::websocket::run_local_router(
+        res.config.ws_node_id.clone(),
+        res.nats.client.clone(),
+        res.ws_sessions.clone(),
+    ));
 
     let router = Router::new()
         .merge(

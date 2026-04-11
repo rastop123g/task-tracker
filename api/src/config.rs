@@ -9,6 +9,7 @@ pub struct Config {
     pub redis_url: String,
     pub jwt_secret: String,
     pub validate_email_prefix: String,
+    pub ws_node_id: String,
     pub s3: S3Config,
 }
 
@@ -40,6 +41,8 @@ impl Config {
             jwt_secret: std::env::var("JWT_SECRET").unwrap_or(String::from("secret")),
             validate_email_prefix: std::env::var("VALIDATE_EMAIL_PREFIX")
                 .unwrap_or(String::from("http://localhost:8045/api/v1/auth/verify")),
+            ws_node_id: std::env::var("WS_NODE_ID")
+                .unwrap_or(uuid::Uuid::new_v4().to_string()),
             s3: S3Config {
                 endpoint: std::env::var("S3_ENDPOINT")
                     .unwrap_or(String::from("http://localhost:9000")),

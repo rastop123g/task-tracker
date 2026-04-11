@@ -15,3 +15,4 @@ pub mod services;
 pub mod swagger;
 pub mod utils;
 pub mod validation;
+pub mod websocket;
