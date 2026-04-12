@@ -3,15 +3,24 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use tokio::sync::mpsc::Sender;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 const CHANNEL_CAPACITY: usize = 256;
+
+#[derive(Debug, Clone)]
+pub enum WsOutChannelMessage {
+    Send(String),
+    Pong,
+}
 
 #[derive(Debug)]
 struct WsSession {
     user_id: Uuid,
     workspace_ids: HashSet<Uuid>,
-    tx: Sender<String>,
+    tx: Sender<WsOutChannelMessage>,
+    // Для отключения ws сессии
+    cancel: CancellationToken,
 }
 
 #[derive(Debug)]
@@ -37,14 +46,17 @@ impl WsSessionMap {
     pub fn add_session(
         &self,
         user_id: Uuid,
-        workspace_ids: HashSet<Uuid>,
-        tx: Sender<String>,
+        workspace_ids: Vec<Uuid>,
+        tx: Sender<WsOutChannelMessage>,
+        cancel: CancellationToken,
     ) -> Uuid {
         let session_id = Uuid::new_v4();
+        let workspace_ids: HashSet<Uuid> = workspace_ids.into_iter().collect();
         let session = WsSession {
             user_id,
             workspace_ids: workspace_ids.clone(),
             tx,
+            cancel,
         };
 
         self.user_sessions
@@ -132,24 +144,24 @@ impl WsSessionMap {
     }
 
     pub fn send_to_user(&self, user_id: &Uuid, msg: &str) {
-        let senders: Vec<(Uuid, Sender<String>)> = self
+        let senders: Vec<(Sender<WsOutChannelMessage>, CancellationToken)> = self
             .user_sessions
             .get(user_id)
             .map(|ids| {
                 ids.value()
                     .iter()
-                    .filter_map(|sid| self.sessions.get(sid).map(|s| (*sid, s.tx.clone())))
+                    .filter_map(|sid| self.sessions.get(sid).map(|s| (s.tx.clone(), s.cancel.clone())))
                     .collect()
             })
             .unwrap_or_default();
 
-        for (sid, tx) in senders {
-            match tx.try_send(msg.to_owned()) {
+        for (tx, cancel) in senders {
+            match tx.try_send(WsOutChannelMessage::Send(msg.to_owned())) {
                 Ok(_) => {}
                 Err(e) => match e {
                     tokio::sync::mpsc::error::TrySendError::Full(_) => {
                         tracing::warn!("Session channel is full, dropping session");
-                        self.remove_session(&sid);
+                        cancel.cancel();
                     }
                     _ => {}
                 },
@@ -158,24 +170,24 @@ impl WsSessionMap {
     }
 
     pub fn send_to_workspace(&self, ws_id: &Uuid, msg: &str) {
-        let senders: Vec<(Uuid, Sender<String>)> = self
+        let senders: Vec<(Sender<WsOutChannelMessage>, CancellationToken)> = self
             .workspace_sessions
             .get(ws_id)
             .map(|ids| {
                 ids.value()
                     .iter()
-                    .filter_map(|sid| self.sessions.get(sid).map(|s| (*sid, s.tx.clone())))
+                    .filter_map(|sid| self.sessions.get(sid).map(|s| (s.tx.clone(), s.cancel.clone())))
                     .collect()
             })
             .unwrap_or_default();
 
-        for (sid, tx) in senders {
-            match tx.try_send(msg.to_owned()) {
+        for (tx, cancel) in senders {
+            match tx.try_send(WsOutChannelMessage::Send(msg.to_owned())) {
                 Ok(_) => {}
                 Err(e) => match e {
                     tokio::sync::mpsc::error::TrySendError::Full(_) => {
                         tracing::warn!("Session channel is full, dropping session");
-                        self.remove_session(&sid);
+                        cancel.cancel();
                     }
                     _ => {}
                 },
@@ -215,13 +227,14 @@ mod tests {
         r#"{"type":"Pong","data":null}"#.to_owned()
     }
 
-    fn make_channel() -> (Sender<String>, mpsc::Receiver<String>) {
+    fn make_channel() -> (Sender<WsOutChannelMessage>, mpsc::Receiver<WsOutChannelMessage>) {
         mpsc::channel(WsSessionMap::channel_capacity())
     }
 
     fn helper_add_session(map: &WsSessionMap, user_id: Uuid, ws_ids: Vec<Uuid>) -> Uuid {
         let (tx, _) = make_channel();
-        map.add_session(user_id, ws_ids.into_iter().collect(), tx)
+        let cancel = CancellationToken::new();
+        map.add_session(user_id, ws_ids, tx, cancel)
     }
 
     #[tokio::test]
@@ -296,7 +309,8 @@ mod tests {
         let ws_id = Uuid::new_v4();
 
         let (tx, mut rx) = make_channel();
-        map.add_session(user_id, HashSet::from([ws_id]), tx);
+        let cancel = CancellationToken::new();
+        map.add_session(user_id, Vec::from([ws_id]), tx, cancel);
 
         map.send_to_user(&user_id, &msg());
 
@@ -311,7 +325,8 @@ mod tests {
         let ws_id = Uuid::new_v4();
 
         let (tx, mut rx) = make_channel();
-        map.add_session(user_id, HashSet::from([ws_id]), tx);
+        let cancel = CancellationToken::new();
+        map.add_session(user_id, Vec::from([ws_id]), tx, cancel);
 
         map.send_to_workspace(&ws_id, &msg());
 
@@ -324,7 +339,8 @@ mod tests {
         let map = WsSessionMap::new();
         let other_user = Uuid::new_v4();
         let (tx, mut rx) = make_channel();
-        map.add_session(other_user, HashSet::new(), tx);
+        let cancel = CancellationToken::new();
+        map.add_session(other_user, Vec::new(), tx, cancel);
 
         map.send_to_user(&Uuid::new_v4(), &msg());
 

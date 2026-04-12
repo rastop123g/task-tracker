@@ -1,15 +1,22 @@
+use std::time::Duration;
+
 use axum::{
     extract::{Query, State, WebSocketUpgrade},
     response::Response,
 };
+use bytes::Bytes;
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
+use tokio_util::sync::CancellationToken;
 use utoipa::IntoParams;
+use uuid::Uuid;
 
 use crate::{
     app_resources::AppResources,
     jwt,
-    protocol::websocket::ws_outgoing::WsOutgoingMsg, websocket::WsSessionMap,
+    protocol::websocket::{WsIncomingMsg, ws_outgoing::WsOutgoingMsg},
+    router::extractors::req_ctx::Ctx,
+    websocket::{WsSessionMap, ws_session::WsOutChannelMessage},
 };
 
 #[derive(Debug, Clone, Deserialize, IntoParams)]
@@ -37,11 +44,7 @@ pub async fn ws_handler(
     ws.on_upgrade(move |socket| handle_socket(socket, params.token, app))
 }
 
-async fn handle_socket(
-    socket: axum::extract::ws::WebSocket,
-    token: String,
-    app: AppResources,
-) {
+async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app: AppResources) {
     let (mut sender, mut receiver) = socket.split();
 
     let user_id = match jwt::verify(&token, &app.config) {
@@ -70,7 +73,251 @@ async fn handle_socket(
     };
 
     //NOTE: get user workspaces
+    let workspaces = match ctx
+        .ws_registry_service()
+        .get_user_workspaces(&user_id)
+        .await
+    {
+        Ok(workspaces) => workspaces,
+        Err(_) => {
+            return;
+        }
+    };
 
-    let (send_tx, mut send_rx) = tokio::sync::mpsc::channel::<String>(WsSessionMap::channel_capacity());
+    let (send_tx, mut send_rx) =
+        tokio::sync::mpsc::channel::<WsOutChannelMessage>(WsSessionMap::channel_capacity());
+    let cancel = CancellationToken::new();
 
+    //NOTE: add session to local and global registry
+    let session = ctx.app.ws_sessions.add_session(
+        user_id,
+        workspaces.clone(),
+        send_tx.clone(),
+        cancel.clone(),
+    );
+    let mut cleanup = CleanupSession::new(session);
+    let Ok(_) = ctx.ws_registry_service().add_node_to_user(&user_id).await else {
+        cleanup.cleanup(&ctx).await;
+        return;
+    };
+    cleanup.user_setted = true;
+    let Ok(_) = ctx
+        .ws_registry_service()
+        .add_node_to_workspaces(&workspaces)
+        .await
+    else {
+        cleanup.cleanup(&ctx).await;
+        return;
+    };
+    cleanup.workspace_setted = true;
+
+    let sender_task = tokio::spawn({
+        let cancel = cancel.clone();
+        async move {
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        break;
+                    },
+                    msg = send_rx.recv() => {
+                        let Some(msg) = msg else {
+                            break;
+                        };
+                        match msg {
+                            WsOutChannelMessage::Send(msg) => match sender.send(axum::extract::ws::Message::Text(msg.into())).await {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    tracing::warn!("Failed to send message: {e}");
+                                    break;
+                                }
+                            }
+                            WsOutChannelMessage::Pong => {
+                                match sender.send(axum::extract::ws::Message::Ping(Bytes::new())).await {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        tracing::warn!("Failed to send message: {e}");
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    let (hb_tx, mut hb_rx) = tokio::sync::mpsc::channel::<HeartBitMessage>(4);
+
+    let receiver_task = tokio::spawn({
+        let cancel = cancel.clone();
+        let send_tx = send_tx.clone();
+        let js = ctx.app.nats.js.clone();
+        async move {
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        break;
+                    },
+                    msg = receiver.next() => {
+                        let Some(Ok(msg)) = msg else {
+                            break;
+                        };
+                        match msg {
+                            axum::extract::ws::Message::Ping(_) => {
+                                send_tx.send(WsOutChannelMessage::Pong).await.ok();
+                            }
+                            axum::extract::ws::Message::Pong(_) => {}
+                            axum::extract::ws::Message::Text(msg) => {
+                                hb_tx.send(HeartBitMessage::AnyMessage).await.ok();
+                                let parsed = serde_json::from_str::<WsIncomingMsg>(&msg);
+                                let Ok(parsed) = parsed else {
+                                    let unknown_msg = WsOutgoingMsg::UnknownMessageErr(format!("Unknown text message"));
+                                    if let Ok(json) = serde_json::to_string(&unknown_msg) {
+                                        send_tx.send(WsOutChannelMessage::Send(json)).await.ok();
+                                    }
+                                    continue;
+                                };
+                                if let WsIncomingMsg::Ping(()) = parsed {
+                                    hb_tx.send(HeartBitMessage::Ping).await.ok();
+                                    continue;
+                                }
+                                if let WsIncomingMsg::Pong(()) = parsed {
+                                    hb_tx.send(HeartBitMessage::Pong).await.ok();
+                                    continue;
+                                }
+                                // ws incoming msg
+                                // TODO: ack to ws
+                                let Ok(ack) = js.publish("events.wim", msg.into()).await else {
+                                    break;
+                                };
+                                let Ok(_) = ack.await else {
+                                    break;
+                                };
+
+                            }
+                            axum::extract::ws::Message::Binary(_) => {
+                                let unknown_msg = WsOutgoingMsg::UnknownMessageErr(format!("Unknown binary message"));
+                                if let Ok(json) = serde_json::to_string(&unknown_msg) {
+                                    send_tx.send(WsOutChannelMessage::Send(json)).await.ok();
+                                }
+                            }
+                            axum::extract::ws::Message::Close(_) => {
+                                break;
+                            },
+                        };
+                    }
+                }
+            }
+        }
+    });
+
+    let heartbeat_task = tokio::spawn({
+        let cancel = cancel.clone();
+        let send_tx = send_tx.clone();
+        async move {
+            let hb_interval = tokio::time::interval(Duration::from_secs(5));
+            tokio::pin!(hb_interval);
+            let ping_msg = format!("{{\"type\":\"Ping\",\"data\":null}}");
+            let pong_msg = format!("{{\"type\":\"Pong\",\"data\":null}}");
+            let check_interval = tokio::time::interval(Duration::from_secs(5));
+            tokio::pin!(check_interval);
+            let mut last_active = std::time::Instant::now();
+            loop {
+                tokio::select! {
+                    _ = cancel.cancelled() => {
+                        break;
+                    },
+                    _ = hb_interval.tick() => {
+                        if last_active.elapsed() > Duration::from_secs(10) {
+                            send_tx.send(WsOutChannelMessage::Send(ping_msg.clone())).await.ok();
+                        }
+                    }
+                    _ = check_interval.tick() => {
+                        //NOTE: Падаем если нет активности в последние 30 секунд
+                        if last_active.elapsed() > Duration::from_secs(30) {
+                            break;
+                        }
+                    }
+                    msg = hb_rx.recv() => {
+                        let Some(msg) = msg else {
+                            break;
+                        };
+                        match msg {
+                            HeartBitMessage::Ping => {
+                                last_active = std::time::Instant::now();
+                                send_tx.send(WsOutChannelMessage::Send(pong_msg.clone())).await.ok();
+                            }
+                            HeartBitMessage::Pong => {
+                                last_active = std::time::Instant::now();
+                            }
+                            HeartBitMessage::AnyMessage => {
+                                last_active = std::time::Instant::now();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    tokio::select! {
+        _ = sender_task => {}
+        _ = receiver_task => {}
+        _ = heartbeat_task => {}
+    }
+    cancel.cancel();
+
+    cleanup.cleanup(&ctx).await;
+}
+
+struct CleanupSession {
+    session_id: Uuid,
+    user_setted: bool,
+    workspace_setted: bool,
+}
+
+impl CleanupSession {
+    fn new(session_id: Uuid) -> Self {
+        Self {
+            session_id,
+            user_setted: false,
+            workspace_setted: false,
+        }
+    }
+
+    async fn cleanup(self, ctx: &Ctx) {
+        let Some((user_id, workspace_ids)) = ctx.app.ws_sessions.remove_session(&self.session_id)
+        else {
+            return;
+        };
+        if self.user_setted {
+            let has_another_session = ctx.app.ws_sessions.has_user_sessions(&user_id);
+            if !has_another_session {
+                ctx.ws_registry_service()
+                    .remove_node_from_user(&user_id)
+                    .await
+                    .ok();
+            }
+        }
+        if self.workspace_setted {
+            let to_remove = workspace_ids
+                .into_iter()
+                .filter(|ws_id| !ctx.app.ws_sessions.has_workspace_sessions(ws_id))
+                .collect::<Vec<Uuid>>();
+            if !to_remove.is_empty() {
+                ctx.ws_registry_service()
+                    .remove_node_from_workspaces(&to_remove)
+                    .await
+                    .ok();
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum HeartBitMessage {
+    Ping,
+    Pong,
+    AnyMessage,
 }

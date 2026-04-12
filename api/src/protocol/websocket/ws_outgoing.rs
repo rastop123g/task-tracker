@@ -8,4 +8,5 @@ pub enum WsOutgoingMsg {
     Ping(()),
     Pong(()),
     BadAuth(()),
+    UnknownMessageErr(String),
 }
