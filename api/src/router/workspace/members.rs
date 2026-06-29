@@ -100,7 +100,7 @@ pub async fn leave_member(
     wa: WorkspaceMember<WorkspacePathParams>,
 ) -> ApiResult<()> {
     ctx.workspace_member_service()
-        .delete(&wa.workspace.id, &wa.member.id)
+        .delete_self(&wa.workspace.id, &wa.member.id)
         .await?;
     Ok(())
 }

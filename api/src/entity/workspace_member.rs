@@ -39,7 +39,7 @@ impl From<WorkspaceMemberEntity> for WorkspaceMemberResponse {
             id: wm.user.id,
             name: wm.user.name,
             email: wm.user.email,
-            avatar: wm.user.avatar,
+            avatar: wm.user.avatar.is_some(),
             member_since: wm.created_at.max(wm.updated_at),
             deleted_at: wm.deleted_at,
         }

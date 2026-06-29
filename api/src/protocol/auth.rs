@@ -84,6 +84,7 @@ pub struct LoginResponse {
     pub user_id: Uuid,
     pub name: String,
     pub email: String,
+    pub avatar: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,

@@ -27,8 +27,8 @@ pub struct WsParams {
 
 #[utoipa::path(
     get,
-    path = "/api/v1/ws",
-    tag = "WebSocket Gateway",
+    path = "/ws",
+    tag = "websocket",
     responses(
         (status = 101, description = "Switching Protocols"),
     ),
@@ -86,7 +86,7 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
 
     let (send_tx, mut send_rx) =
         tokio::sync::mpsc::channel::<WsOutChannelMessage>(WsSessionMap::channel_capacity());
-    let cancel = CancellationToken::new();
+    let cancel = ctx.app.cancel.child_token();
 
     //NOTE: add session to local and global registry
     let session = ctx.app.ws_sessions.add_session(
@@ -95,7 +95,8 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
         send_tx.clone(),
         cancel.clone(),
     );
-    let mut cleanup = CleanupSession::new(session);
+    tracing::info!("Session created: {session}");
+    let mut cleanup = CleanupSession::new(session.clone());
     let Ok(_) = ctx.ws_registry_service().add_node_to_user(&user_id).await else {
         cleanup.cleanup(&ctx).await;
         return;
@@ -111,7 +112,7 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
     };
     cleanup.workspace_setted = true;
 
-    let sender_task = tokio::spawn({
+    let sender_task = ctx.app.tracker.spawn({
         let cancel = cancel.clone();
         async move {
             loop {
@@ -149,7 +150,7 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
 
     let (hb_tx, mut hb_rx) = tokio::sync::mpsc::channel::<HeartBitMessage>(4);
 
-    let receiver_task = tokio::spawn({
+    let receiver_task = ctx.app.tracker.spawn({
         let cancel = cancel.clone();
         let send_tx = send_tx.clone();
         let js = ctx.app.nats.js.clone();
@@ -169,24 +170,26 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
                             }
                             axum::extract::ws::Message::Pong(_) => {}
                             axum::extract::ws::Message::Text(msg) => {
-                                hb_tx.send(HeartBitMessage::AnyMessage).await.ok();
+                                hb_tx.try_send(HeartBitMessage::AnyMessage).ok();
+                                // TODO: Может имеет смысл не парсить сообщение а попытаться более
+                                // оптимально определить ping/pong исключить ping/pong WsIncomingMsg
                                 let parsed = serde_json::from_str::<WsIncomingMsg>(&msg);
                                 let Ok(parsed) = parsed else {
-                                    let unknown_msg = WsOutgoingMsg::UnknownMessageErr(format!("Unknown text message"));
+                                    let unknown_msg = WsOutgoingMsg::UnknownMessageErr(format!("{msg}"));
                                     if let Ok(json) = serde_json::to_string(&unknown_msg) {
                                         send_tx.send(WsOutChannelMessage::Send(json)).await.ok();
                                     }
                                     continue;
                                 };
                                 if let WsIncomingMsg::Ping(()) = parsed {
-                                    hb_tx.send(HeartBitMessage::Ping).await.ok();
+                                    hb_tx.try_send(HeartBitMessage::Ping).ok();
                                     continue;
                                 }
                                 if let WsIncomingMsg::Pong(()) = parsed {
-                                    hb_tx.send(HeartBitMessage::Pong).await.ok();
+                                    hb_tx.try_send(HeartBitMessage::Pong).ok();
                                     continue;
                                 }
-                                // ws incoming msg
+                                // wim - ws incoming msg
                                 // TODO: ack to ws
                                 let Ok(ack) = js.publish("events.wim", msg.into()).await else {
                                     break;
@@ -212,32 +215,25 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
         }
     });
 
-    let heartbeat_task = tokio::spawn({
+    let heartbeat_task = ctx.app.tracker.spawn({
         let cancel = cancel.clone();
         let send_tx = send_tx.clone();
         async move {
-            let hb_interval = tokio::time::interval(Duration::from_secs(5));
-            tokio::pin!(hb_interval);
-            let ping_msg = format!("{{\"type\":\"Ping\",\"data\":null}}");
-            let pong_msg = format!("{{\"type\":\"Pong\",\"data\":null}}");
-            let check_interval = tokio::time::interval(Duration::from_secs(5));
-            tokio::pin!(check_interval);
+            let ping_msg = format!("{{\"event\":\"Ping\",\"data\":null}}");
+            let pong_msg = format!("{{\"event\":\"Pong\",\"data\":null}}");
             let mut last_active = std::time::Instant::now();
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => {
                         break;
                     },
-                    _ = hb_interval.tick() => {
-                        if last_active.elapsed() > Duration::from_secs(10) {
-                            send_tx.send(WsOutChannelMessage::Send(ping_msg.clone())).await.ok();
-                        }
-                    }
-                    _ = check_interval.tick() => {
+                    _ = tokio::time::sleep(Duration::from_secs(10)) => {
                         //NOTE: Падаем если нет активности в последние 30 секунд
                         if last_active.elapsed() > Duration::from_secs(30) {
                             break;
-                        }
+                        } 
+                        // NOTE: сюда мы попали если активности небыло от 10 секунд до 30 секунд
+                        send_tx.send(WsOutChannelMessage::Send(ping_msg.clone())).await.ok();
                     }
                     msg = hb_rx.recv() => {
                         let Some(msg) = msg else {
@@ -248,16 +244,29 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
                                 last_active = std::time::Instant::now();
                                 send_tx.send(WsOutChannelMessage::Send(pong_msg.clone())).await.ok();
                             }
-                            HeartBitMessage::Pong => {
-                                last_active = std::time::Instant::now();
-                            }
-                            HeartBitMessage::AnyMessage => {
+                            HeartBitMessage::Pong | HeartBitMessage::AnyMessage => {
                                 last_active = std::time::Instant::now();
                             }
                         }
                     }
                 }
             }
+        }
+    });
+    if let Ok(json) = serde_json::to_string(&WsOutgoingMsg::Connected(())) {
+        send_tx.send(WsOutChannelMessage::Send(json)).await.ok();
+    } else {
+        cancel.cancel();
+    }
+
+    //Чистим все при штатном завершении сессии или приложения
+    ctx.app.tracker.spawn({
+        let ctx = ctx.clone();
+        let cancel = cancel.clone();
+        async move {
+            cancel.cancelled().await;
+            cleanup.cleanup(&ctx).await;
+            tracing::info!("Session closed: {session}");
         }
     });
 
@@ -268,7 +277,6 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, token: String, app:
     }
     cancel.cancel();
 
-    cleanup.cleanup(&ctx).await;
 }
 
 struct CleanupSession {

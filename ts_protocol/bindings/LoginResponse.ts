@@ -4,7 +4,7 @@ export type LoginResponse = {
 /**
  * User id (uuid)
  */
-user_id: string, name: string, email: string, created_at: string, updated_at: string, deleted_at: string | null, 
+user_id: string, name: string, email: string, avatar: boolean, created_at: string, updated_at: string, deleted_at: string | null, 
 /**
  * access token
  */

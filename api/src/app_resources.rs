@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tokio_util::sync::CancellationToken;
+
 use crate::{router::extractors::req_ctx::Ctx, websocket::WsSessionMap};
 
 #[derive(Clone, Debug)]
@@ -10,6 +12,8 @@ pub struct AppResources {
     pub config: Arc<crate::config::Config>,
     pub s3: aws_sdk_s3::Client,
     pub ws_sessions: Arc<WsSessionMap>,
+    pub cancel: CancellationToken,
+    pub tracker: tokio_util::task::TaskTracker,
 }
 
 impl AppResources {
@@ -19,6 +23,8 @@ impl AppResources {
         redis: crate::redis::RedisClient,
         config: Arc<crate::config::Config>,
         s3: aws_sdk_s3::Client,
+        cancel: CancellationToken,
+        tracker: tokio_util::task::TaskTracker,
     ) -> Self {
         Self {
             ws_sessions: WsSessionMap::new(),
@@ -27,6 +33,8 @@ impl AppResources {
             redis,
             config,
             s3,
+            cancel,
+            tracker,
         }
     }
 

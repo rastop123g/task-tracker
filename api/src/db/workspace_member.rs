@@ -163,6 +163,23 @@ impl DBWorkspaceMember {
         .await?;
         Ok(res)
     }
+
+    pub async fn get_user_ids_by_workspaces(
+        workspace_ids: &[Uuid],
+        db: &mut sqlx::PgConnection,
+    ) -> ApiResult<Vec<Uuid>> {
+        let res = sqlx::query_scalar!(
+            r#"
+                SELECT DISTINCT user_id
+                FROM workspace_member
+                WHERE workspace_id = ANY($1) AND deleted_at IS NULL
+            "#,
+            workspace_ids
+        )
+        .fetch_all(db)
+        .await?;
+        Ok(res)
+    }
 }
 
 impl DBWorkspaceMemberWithUser {

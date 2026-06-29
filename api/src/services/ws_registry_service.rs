@@ -1,9 +1,13 @@
+use std::collections::HashMap;
+
 use bb8_redis::RedisConnectionManager;
 use redis::AsyncCommands;
 use uuid::Uuid;
 
 use crate::{
-    db::workspace_member::DBWorkspaceMember, error::ApiResult, router::extractors::req_ctx::Ctx,
+    db::workspace_member::DBWorkspaceMember,
+    error::{ApiError, ApiResult},
+    router::extractors::req_ctx::Ctx,
 };
 
 const WORKSPACE_MEMBERS_TTL: u64 = 60 * 60 * 24 * 3; // 3 days
@@ -187,6 +191,27 @@ impl WsRegistryService {
         let mut conn = self.rconn().await?;
         let nodes: Vec<String> = conn.smembers(user_nodes_key(user_id)).await?;
         Ok(nodes)
+    }
+
+    pub async fn get_nodes_by_users(
+        &self,
+        user_ids: &[Uuid],
+    ) -> ApiResult<HashMap<Uuid, Vec<Uuid>>> {
+        let mut conn = self.rconn().await?;
+        let mut pipe = redis::pipe();
+        for user_id in user_ids {
+            pipe.cmd("SMEMBERS").arg(user_nodes_key(user_id));
+        }
+        let nodes: Vec<Vec<String>> = pipe.query_async(&mut *conn).await?;
+        let mut map: HashMap<Uuid, Vec<Uuid>> = HashMap::with_capacity(user_ids.len());
+        for (user_id, nodes) in user_ids.into_iter().zip(nodes) {
+            let user_nodes = nodes
+                .into_iter()
+                .map(|s| s.parse::<Uuid>().map_err(|_| ApiError::InternalServerError))
+                .collect::<ApiResult<_>>()?;
+            map.insert(*user_id, user_nodes);
+        }
+        Ok(map)
     }
 
     pub async fn get_user_workspaces(&self, user_id: &Uuid) -> ApiResult<Vec<Uuid>> {

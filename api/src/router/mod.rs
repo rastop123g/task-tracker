@@ -2,6 +2,7 @@ use axum::Router;
 use utoipa::OpenApi;
 
 use crate::app_resources::AppResources;
+use crate::protocol::websocket::{WsIncomingMsg, WsOutgoingMsg};
 pub mod auth;
 pub mod avatar;
 pub mod extractors;
@@ -37,5 +38,7 @@ use self::workspace::WorkspaceApiDoc;
          (path = "/user", api = UserApiDoc),
          (path = "/workspace", api = WorkspaceApiDoc),
     ),
+    paths(ws::ws_handler),
+    components(schemas(WsOutgoingMsg, WsIncomingMsg)),
 )]
 pub struct ApiV1Docs;

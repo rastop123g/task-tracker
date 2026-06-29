@@ -10,7 +10,7 @@ pub struct WorkspaceMemberResponse {
     pub name: String,
     pub email: String,
     /// Превью аватарки
-    pub avatar: Option<String>,
+    pub avatar: bool,
     /// Дата приглашения (вступления)
     pub member_since: chrono::DateTime<chrono::Utc>,
     /// Дата исключения (выхода)

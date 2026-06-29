@@ -64,6 +64,7 @@ impl From<LoginnedUserEntity> for LoginResponse {
             token_exp: user.tokens.token_exp,
             refresh_exp: user.tokens.refresh_exp,
             server_time: Utc::now(),
+            avatar: user.user.avatar.is_some(),
         }
     }
 }

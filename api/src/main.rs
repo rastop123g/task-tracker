@@ -7,11 +7,13 @@ use api::{
     db::{init_pool, run_migrations},
     router::app_router,
     swagger::ApiDoc,
+    websocket::{incoming_task, run_global_fan_out_task},
 };
 use aws_config::{BehaviorVersion, Region, SdkConfig};
 use aws_sdk_s3::config::{Credentials, SharedCredentialsProvider};
 use axum::Router;
 use clap::Parser;
+use tokio_util::sync::CancellationToken;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
@@ -68,14 +70,21 @@ async fn serve() -> anyhow::Result<()> {
         .build();
     let s3 = aws_sdk_s3::Client::from_conf(s3_config);
     let nats = Arc::new(nats);
+    let cancel = CancellationToken::new();
+    let tracker = tokio_util::task::TaskTracker::new();
 
-    let res = AppResources::new(db, nats.clone(), redis, config.clone(), s3);
+    let res = AppResources::new(db, nats.clone(), redis, config.clone(), s3, cancel.clone(), tracker.clone());
 
-    tokio::spawn(api::websocket::run_local_router(
+    tracker.spawn(api::websocket::run_local_fan_out(
         res.config.ws_node_id.clone(),
         res.nats.client.clone(),
         res.ws_sessions.clone(),
+        cancel.clone()
     ));
+    for _ in 0..num_cpus::get().max(1).min(8) {
+        incoming_task(res.clone(),cancel.clone(), tracker.clone());
+        run_global_fan_out_task(res.clone(), cancel.clone(), tracker.clone());
+    }
 
     let router = Router::new()
         .merge(
@@ -90,7 +99,27 @@ async fn serve() -> anyhow::Result<()> {
     let listener =
         tokio::net::TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     tracing::info!("Listening on {}:{}", config.host, config.port);
-    axum::serve(listener, router).await?;
 
+    tracker.spawn({
+        let cancel = cancel.clone();
+        async move {
+            tokio::signal::ctrl_c().await.ok();
+            tracing::info!("Ctrl+C received, shutting down...");
+            cancel.cancel();
+        }
+    });
+
+    tokio::select! {
+        _ = cancel.cancelled() => {
+            tracing::info!("Shutting down...");
+        }
+        _ = axum::serve(listener, router) => {
+            cancel.cancel();
+        }
+    }
+
+    tracker.close();
+    tracker.wait().await;
+    tracing::info!("Shutdown complete");
     Ok(())
 }

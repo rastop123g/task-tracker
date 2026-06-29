@@ -2,12 +2,9 @@ use uuid::Uuid;
 
 use crate::{
     db::{
-        user::DBUserListItem, workspace_invite::DBWorkspaceInvite,
+        user::{DBUserListItem}, workspace_invite::DBWorkspaceInvite,
         workspace_member::DBWorkspaceMember,
-    },
-    entity::{user::UserListItemEntity, workspace_invite::WorkspaceInviteEntity},
-    error::{ApiError, ApiResult, bad_request::BadRequestError},
-    router::extractors::req_ctx::Ctx,
+    }, entity::{user::{UserEntity, UserListItemEntity}, workspace_invite::WorkspaceInviteEntity}, error::{ApiError, ApiResult, bad_request::BadRequestError}, protocol::websocket::ws_outgoing::user::{AddMemberEvent, RevokeInviteEvent, UserInviteEvent}, router::extractors::req_ctx::Ctx, websocket::global_fan_out::GlobalFanOutSender
 };
 
 #[derive(Debug, Clone)]
@@ -61,6 +58,11 @@ impl WorkspaceInviteService {
             return Err(ApiError::BadRequest(BadRequestError::UserAlreadyInvited));
         }
         let invite = DBWorkspaceInvite::create(workspace_id, user_id, &mut conn).await?;
+        let ev = UserInviteEvent {
+            user_id: user_id.clone(),
+            workspace_id: workspace_id.clone(),
+        };
+        ev.send_event(&app.nats.js).await;
         Ok(invite.into())
     }
 
@@ -75,6 +77,11 @@ impl WorkspaceInviteService {
             return Err(ApiError::NotFound("workspace_invite".to_string()));
         }
         DBWorkspaceInvite::delete(workspace_id, user_id, &mut conn).await?;
+        let ev = RevokeInviteEvent {
+            user_id: user_id.clone(),
+            workspace_id: workspace_id.clone(),
+        };
+        ev.send_event(&app.nats.js).await;
         Ok(())
     }
 
@@ -97,6 +104,13 @@ impl WorkspaceInviteService {
     pub async fn accept_invite(&self, workspace_id: &Uuid, user_id: &Uuid) -> ApiResult<()> {
         let app = &self.ctx.app;
         let mut conn = app.db.begin().await?;
+        let user = UserEntity::get_by_id(user_id, &app.redis, &mut conn).await?;
+        let Some(user) = user else {
+            return Err(ApiError::NotFound("user".to_string()));
+        };
+        if !user.confirmed || user.deleted_at.is_some() {
+            return Err(ApiError::NotFound("user".to_string()));
+        }
         let invite = DBWorkspaceInvite::get(workspace_id, user_id, &mut conn).await?;
         let member = DBWorkspaceMember::get(user_id, workspace_id, &mut conn).await?;
         if let Some(member) = member
@@ -109,11 +123,22 @@ impl WorkspaceInviteService {
                 return Err(ApiError::NotFound("workspace_invite".to_string()));
             }
             DBWorkspaceInvite::delete(workspace_id, user_id, &mut conn).await?;
-            DBWorkspaceMember::create(user_id, workspace_id, &mut conn).await?;
+            let created = DBWorkspaceMember::create(user_id, workspace_id, &mut conn).await?;
             conn.commit().await?;
+
             self.ctx.ws_registry_service()
                 .add_workspace_member(workspace_id, user_id)
                 .await?;
+            let ev = AddMemberEvent {
+                user_id: user.id,
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar.is_some(),
+                member_since: created.created_at.max(created.updated_at),
+                workspace_id: workspace_id.clone(),
+            };
+            ev.send_event(&app.nats.js).await;
+
             Ok(())
         } else {
             Err(ApiError::NotFound("workspace_invite".to_string()))

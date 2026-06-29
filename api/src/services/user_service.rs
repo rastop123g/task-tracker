@@ -1,12 +1,7 @@
 use uuid::Uuid;
 
 use crate::{
-    cache::RedisCache,
-    db::user::{DBUpdateUser, DBUser, DBUserListItem},
-    entity::user::{UserEntity, UserListItemEntity},
-    error::{ApiError, ApiResult},
-    redis::RedisClient,
-    router::extractors::req_ctx::Ctx,
+    cache::RedisCache, db::user::{DBUpdateUser, DBUser, DBUserListItem}, entity::user::{UserEntity, UserListItemEntity}, error::{ApiError, ApiResult}, protocol::websocket::ws_outgoing::user::UpdateUserEvent, redis::RedisClient, router::extractors::req_ctx::Ctx, websocket::global_fan_out::{GlobalFanOutMessage, GlobalFanOutSender}
 };
 
 #[derive(Debug, Clone)]
@@ -47,6 +42,8 @@ impl UserService {
         if let Some(updated) = updated {
             let user = UserEntity::from(updated);
             user.cache(&app.redis).await?;
+            // event
+            user.send_event(&app.nats.js).await;
             Ok(user)
         } else {
             Err(ApiError::NotFound("user".to_string()))
